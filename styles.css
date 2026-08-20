@@ -48,3 +48,16 @@
   .hero-phone{width:66px;height:140px;border-width:5px}
 }
 /* Keep the hero motion active consistently across browsers and desktop accessibility settings. */
+
+/* ATHR Patch 023 v2 — sticky full navigation */
+#site-nav{
+  position:sticky;
+  top:0;
+  z-index:1000;
+}
+
+#site-nav .site-header{
+  position:relative;
+  top:auto;
+  z-index:auto;
+}
