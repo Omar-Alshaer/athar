@@ -1,0 +1,50 @@
+/* ATHR Patch 015 — tighten only the space between the three hero product cards. */
+.hero-art{
+  column-gap:8px !important;
+}
+
+/* Bring the balance guide card slightly closer to the other two. */
+.hero-pad{
+  left:18px !important;
+  top:-10px !important;
+}
+
+@media(max-width:760px){
+  .hero-art{
+    column-gap:6px !important;
+  }
+  .hero-pad{
+    left:10px !important;
+    top:-7px !important;
+  }
+}
+
+@media(max-width:470px){
+  .hero-art{
+    column-gap:4px !important;
+  }
+  .hero-pad{
+    left:6px !important;
+    top:-5px !important;
+  }
+}
+
+
+/* ATHR Patch 019 — align all three hero cards on the same horizontal top line. */
+.hero-art{
+  align-items:start !important;
+  padding-top:58px !important;
+}
+.hero-pad,.hero-book,.hero-phone{
+  top:0 !important;
+}
+
+@media(max-width:760px){
+  .hero-art{padding-top:48px !important;}
+  .hero-pad,.hero-book,.hero-phone{top:0 !important;}
+}
+
+@media(max-width:470px){
+  .hero-art{padding-top:42px !important;}
+  .hero-pad,.hero-book,.hero-phone{top:0 !important;}
+}

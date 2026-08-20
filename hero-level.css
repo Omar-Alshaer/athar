@@ -1,0 +1,42 @@
+/* ATHR Patch 020 Final — all three hero cards stay on one horizontal level. */
+.hero-art {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  column-gap: 14px !important;
+  padding-top: 0 !important;
+}
+
+.hero-art .hero-pad,
+.hero-art .hero-book,
+.hero-art .hero-phone {
+  position: relative !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: auto !important;
+  margin: 0 !important;
+  align-self: center !important;
+  animation: athrHeroRow 4.4s ease-in-out infinite !important;
+  animation-delay: 0s !important;
+  animation-play-state: running !important;
+  will-change: transform;
+}
+
+@keyframes athrHeroRow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+
+@media (max-width: 760px) {
+  .hero-art {
+    column-gap: 9px !important;
+    padding-top: 0 !important;
+  }
+}
+
+@media (max-width: 470px) {
+  .hero-art {
+    column-gap: 6px !important;
+  }
+}

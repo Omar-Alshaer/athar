@@ -1,0 +1,34 @@
+/* ATHR Patch 012 — dedicated hero motion override.
+   Loaded after styles.css so the three hero cards animate reliably without changing layout. */
+.hero-book {
+  animation: athrHeroBook 4.2s ease-in-out infinite !important;
+  animation-play-state: running !important;
+  will-change: transform;
+}
+
+.hero-phone {
+  animation: athrHeroPhone 3.7s ease-in-out .35s infinite !important;
+  animation-play-state: running !important;
+  will-change: transform;
+}
+
+.hero-pad {
+  animation: athrHeroPad 4.8s ease-in-out .7s infinite !important;
+  animation-play-state: running !important;
+  will-change: transform;
+}
+
+@keyframes athrHeroBook {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-20px) rotate(.5deg); }
+}
+
+@keyframes athrHeroPhone {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-26px) rotate(-.7deg); }
+}
+
+@keyframes athrHeroPad {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-17px) rotate(-4deg); }
+}
