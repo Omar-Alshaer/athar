@@ -121,7 +121,7 @@ function renderCart(){
   const subtotal=rows.reduce((s,x)=>s+x.p.price*x.row.qty,0);
   root.innerHTML=`<div class="cart-layout"><div class="cart-items">${rows.map(({row,p})=>`<div class="cart-row"><a class="cover cart-cover ${p.cover}" href="product.html?id=${p.id}"><span class="cover-brand">أثر</span><strong>${p.title}</strong></a><div class="cart-main"><a href="product.html?id=${p.id}">${p.title}</a><span>${p.format}</span><b>${money(p.price)}</b></div><div class="qty"><button onclick="setQty('${p.id}',${row.qty-1})">−</button><span>${row.qty}</span><button onclick="setQty('${p.id}',${row.qty+1})">+</button></div><strong>${money(p.price*row.qty)}</strong><button class="trash" onclick="removeFromCart('${p.id}')">${icon('trash')}</button></div>`).join('')}</div>
   <aside class="order-summary"><h2>ملخص الطلب</h2><div><span>المجموع</span><b>${money(subtotal)}</b></div><div><span>التوصيل</span><b>رقمي — مجاني</b></div><hr><div class="total"><span>الإجمالي</span><b>${money(subtotal)}</b></div><button class="primary-btn full" id="checkout-open">إتمام الطلب</button><p>${icon('shield')} دفع آمن — لن يتم طلب عنوان شحن للمنتجات الرقمية.</p></aside></div>`;
-  $('#checkout-open')?.addEventListener('click',()=>openCheckout(subtotal));
+  $('#checkout-open')?.addEventListener('click',()=>{ window.location.href='checkout.html'; });
 }
 
 function normalizeWhatsAppNumber(number){

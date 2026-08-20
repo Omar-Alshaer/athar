@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="إتمام طلبك من متجر أثر عبر واتساب.">
+  <title>إتمام الطلب | أثر</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="checkout-page.css?v=26">
+  <link rel="stylesheet" href="nav-direct-fixed.css?v=25">
+  <link rel="icon" href="assets/athr-logo.png">
+</head>
+<body>
+  <div id="site-nav"></div>
+
+  <main class="athr-checkout-page">
+    <section class="checkout-head">
+      <div class="container">
+        <a class="checkout-back" href="cart.html">العودة إلى السلة</a>
+        <h1>إتمام الطلب</h1>
+        <p>أدخل بياناتك، راجع طلبك، ثم أكمل الطلب مباشرة عبر واتساب.</p>
+      </div>
+    </section>
+
+    <section class="checkout-section">
+      <div class="container checkout-grid">
+        <section class="checkout-card">
+          <div class="checkout-card-head">
+            <span class="checkout-step">1</span>
+            <div>
+              <h2>بياناتك</h2>
+              <p>سنستخدمها فقط لإتمام الطلب والتواصل معك.</p>
+            </div>
+          </div>
+
+          <form id="checkout-form" novalidate>
+            <label class="checkout-field">
+              <span>الاسم الكامل</span>
+              <input id="checkout-name" type="text" autocomplete="name" placeholder="أدخل الاسم الكامل" required>
+            </label>
+
+            <label class="checkout-field">
+              <span>البريد الإلكتروني</span>
+              <input id="checkout-email" type="email" autocomplete="email" placeholder="أدخل البريد الإلكتروني" required>
+            </label>
+
+            <label class="checkout-field">
+              <span>رقم الهاتف</span>
+              <input id="checkout-phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="أدخل رقم الهاتف" required>
+            </label>
+
+            <div id="checkout-error" class="checkout-error" role="alert" aria-live="polite"></div>
+
+            <button class="primary-btn full checkout-submit" type="submit">
+              إتمام الطلب عبر واتساب
+            </button>
+
+            <p class="checkout-note">لن يتم خصم أي مبلغ داخل الموقع حاليًا. سيتم استكمال الطلب والتنسيق عبر واتساب.</p>
+          </form>
+        </section>
+
+        <aside class="checkout-card checkout-summary">
+          <div class="checkout-card-head">
+            <span class="checkout-step">2</span>
+            <div>
+              <h2>ملخص الطلب</h2>
+              <p>راجع المنتجات قبل المتابعة.</p>
+            </div>
+          </div>
+
+          <div id="checkout-items"></div>
+
+          <div class="checkout-totals">
+            <div><span>المجموع</span><b id="checkout-subtotal">—</b></div>
+            <div><span>التوصيل</span><b>رقمي — مجاني</b></div>
+            <hr>
+            <div class="checkout-total"><span>الإجمالي</span><b id="checkout-total">—</b></div>
+          </div>
+        </aside>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script src="checkout-page.js?v=26"></script>
+  <script src="nav-direct-fixed.js?v=25"></script>
+</body>
+</html>
