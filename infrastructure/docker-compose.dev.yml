@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: athr-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: athr
+      POSTGRES_USER: athr
+      POSTGRES_PASSWORD: athr_dev_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - athr_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U athr -d athr"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  athr_pgdata:

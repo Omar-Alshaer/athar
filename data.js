@@ -1,17 +1,95 @@
-window.ATHR_DATA = {
-  whatsappNumber: '+9660510390125',
-  categories: [
-    { id: 'kids', name: 'قصص الأطفال والتربية', short: 'طفل أكثر وعيًا', desc: 'قصص وأنشطة تزرع القيم وتنمي شخصية الطفل.', icon: 'book', tone: 'sage' },
-    { id: 'wellness', name: 'الصحة النفسية والتوازن', short: 'حياة أكثر اتزانًا', desc: 'أدوات عملية لتخفيف الضغوط وتحسين جودة الحياة.', icon: 'heart', tone: 'mist' },
-    { id: 'family', name: 'الأسرة والتربية والعلاقات', short: 'أسرة أقرب', desc: 'محتوى يعزز التواصل والتربية الإيجابية والعلاقات.', icon: 'users', tone: 'sand' },
-    { id: 'growth', name: 'تطوير الذات والإنتاجية', short: 'نسخة أفضل منك', desc: 'خطط وعادات تساعدك على تنظيم حياتك وتحقيق أهدافك.', icon: 'target', tone: 'olive' },
-    { id: 'money', name: 'المال والوعي المالي', short: 'وعي مالي أكبر', desc: 'منتجات تساعدك على إدارة أموالك واتخاذ قرارات أوعى.', icon: 'wallet', tone: 'gold' }
-  ],
-  products: [
-    { id:'kids-stories', title:'قصص الأطفال والقصص التربوية', category:'kids', price:9.99, rating:4.9, reviews:53, badge:'منتج أثر', cover:'cover-kids', subtitle:'مجموعة قصص ومحتوى تربوي هادف يساعد على غرس القيم وتنمية شخصية الطفل بطريقة ممتعة.', pages:'منتج رقمي', format:'PDF رقمي', featured:true },
-    { id:'mental-balance', title:'الصحة النفسية والتوازن', category:'wellness', price:9.99, rating:4.8, reviews:74, badge:'منتج أثر', cover:'cover-sage', subtitle:'محتوى وأدوات عملية تساعد على تقليل الضغوط وتحسين جودة الحياة والتوازن النفسي.', pages:'منتج رقمي', format:'PDF رقمي', featured:true },
-    { id:'family-relations', title:'الأسرة والتربية والعلاقات', category:'family', price:9.99, rating:4.8, reviews:83, badge:'منتج أثر', cover:'cover-rose', subtitle:'أدلة ومحتوى يساعد على بناء أسرة مستقرة وتعزيز العلاقات والتربية الإيجابية.', pages:'منتج رقمي', format:'PDF رقمي', featured:true },
-    { id:'growth-habits', title:'تطوير الذات والإنتاجية وبناء العادات', category:'growth', price:9.99, rating:4.9, reviews:128, badge:'منتج أثر', cover:'cover-green', subtitle:'أدوات تساعد على تنظيم الحياة وإدارة الوقت وبناء العادات الإيجابية وتحقيق الأهداف.', pages:'منتج رقمي', format:'PDF رقمي', featured:true },
-    { id:'money-management', title:'النجاح المالي وتحسين إدارة الأموال', category:'money', price:9.99, rating:4.9, reviews:82, badge:'منتج أثر', cover:'cover-gold', subtitle:'محتوى رقمي يساعد على إدارة الأموال بوعي أكبر وبناء مصادر دخل إضافية واتخاذ قرارات مالية أفضل.', pages:'منتج رقمي', format:'PDF رقمي', featured:true }
-  ]
-};
+(() => {
+  const isLocal = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
+  const apiBase = isLocal
+    ? 'http://127.0.0.1:4000/api'
+    : 'https://api.athar-online.com/api';
+
+  const data = (window.ATHR_DATA = {
+    whatsappNumber: '+9660510390125',
+    apiBase,
+    categories: [],
+    products: [],
+    loaded: false,
+    catalogError: null,
+  });
+
+  const fallbackCoverByCategory = {
+    kids: 'cover-kids',
+    wellness: 'cover-sage',
+    family: 'cover-rose',
+    growth: 'cover-green',
+    money: 'cover-gold',
+  };
+
+  function mapCategory(category) {
+    return {
+      id: category.slug,
+      dbId: category.id,
+      name: category.nameAr,
+      short: category.shortAr || '',
+      desc: category.descriptionAr || '',
+      icon: category.icon || 'book',
+      tone: category.tone || 'sage',
+      sortOrder: category.sortOrder || 0,
+    };
+  }
+
+  function mapProduct(product) {
+    const categorySlug = product.category?.slug || '';
+    return {
+      id: product.slug,
+      dbId: product.id,
+      title: product.titleAr,
+      category: categorySlug,
+      price: Number(product.price),
+      currency: product.currency || 'USD',
+      rating: Number(product.ratingAverage || 0),
+      reviews: Number(product.reviewCount || 0),
+      badge: product.badgeAr || 'منتج أثر',
+      cover: fallbackCoverByCategory[categorySlug] || 'cover-green',
+      coverUrl: product.coverImage?.secureUrl || '',
+      coverAlt: product.coverImage?.altAr || product.titleAr,
+      gallery: Array.isArray(product.images) ? product.images : [],
+      subtitle: product.subtitleAr || '',
+      description: product.descriptionAr || '',
+      pages: product.contentLabelAr || 'منتج رقمي',
+      format: product.formatLabelAr || 'PDF رقمي',
+      featured: Boolean(product.featured),
+      publishedAt: product.publishedAt || null,
+    };
+  }
+
+  window.ATHR_MAP_PRODUCT = mapProduct;
+
+  async function fetchJson(path) {
+    const response = await fetch(`${apiBase}${path}`, {
+      method: 'GET',
+      credentials: 'include',
+      headers: { Accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      throw new Error(`ATHR API ${response.status} for ${path}`);
+    }
+
+    return response.json();
+  }
+
+  window.ATHR_CATALOG_READY = Promise.all([
+    fetchJson('/categories'),
+    fetchJson('/products?limit=48'),
+  ])
+    .then(([categoriesResponse, productsResponse]) => {
+      data.categories = (categoriesResponse.items || []).map(mapCategory);
+      data.products = (productsResponse.items || []).map(mapProduct);
+      data.loaded = true;
+      data.catalogError = null;
+      return true;
+    })
+    .catch((error) => {
+      console.error('ATHR catalog could not be loaded.', error);
+      data.loaded = false;
+      data.catalogError = error instanceof Error ? error.message : String(error);
+      return false;
+    });
+})();

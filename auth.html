@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>الدخول وإنشاء حساب | أثر</title>
+  <meta name="description" content="سجل دخولك إلى حساب أثر أو أنشئ حسابًا جديدًا للوصول إلى مشترياتك الرقمية.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="auth.css?v=29">
+  <link rel="stylesheet" href="nav-direct-fixed.css?v=25">
+  <link rel="icon" href="assets/athr-logo.png">
+</head>
+<body>
+  <div id="site-nav"></div>
+
+  <main class="auth-page">
+    <section class="auth-hero">
+      <div class="container auth-shell">
+        <div class="auth-intro">
+          <span class="auth-kicker">حساب أثر</span>
+          <h1>كل مشترياتك الرقمية في مكان واحد.</h1>
+          <p>أنشئ حسابك مرة واحدة، وبعد الدفع ستجد كتبك ومنتجاتك الرقمية داخل مكتبتك الخاصة.</p>
+          <div class="auth-points">
+            <span>✓ وصول آمن لمشترياتك</span>
+            <span>✓ مكتبتك محفوظة على حسابك</span>
+            <span>✓ متابعة الطلبات من مكان واحد</span>
+          </div>
+        </div>
+
+        <div class="auth-card">
+          <div class="auth-tabs" role="tablist">
+            <button type="button" class="active" data-auth-tab="login">تسجيل الدخول</button>
+            <button type="button" data-auth-tab="register">إنشاء حساب</button>
+          </div>
+
+          <div id="auth-message" class="auth-message" aria-live="polite"></div>
+
+          <form id="login-form" class="auth-form active">
+            <label>
+              <span>البريد الإلكتروني</span>
+              <input type="email" name="email" autocomplete="email" placeholder="أدخل البريد الإلكتروني" required>
+            </label>
+            <label>
+              <span>كلمة المرور</span>
+              <input type="password" name="password" autocomplete="current-password" placeholder="أدخل كلمة المرور" minlength="8" required>
+            </label>
+            <button class="primary-btn full" type="submit">دخول إلى حسابي</button>
+            <p class="auth-hint">ميزة استعادة كلمة المرور ستضاف في باتش الأمان التالي.</p>
+          </form>
+
+          <form id="register-form" class="auth-form">
+            <label>
+              <span>الاسم الكامل</span>
+              <input type="text" name="fullName" autocomplete="name" placeholder="أدخل الاسم الكامل" minlength="2" required>
+            </label>
+            <label>
+              <span>البريد الإلكتروني</span>
+              <input type="email" name="email" autocomplete="email" placeholder="أدخل البريد الإلكتروني" required>
+            </label>
+            <label>
+              <span>رقم الهاتف <small>اختياري</small></span>
+              <input type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="مثال: +20 10 1234 5678">
+            </label>
+            <label>
+              <span>كلمة المرور</span>
+              <input type="password" name="password" autocomplete="new-password" placeholder="8 أحرف على الأقل" minlength="8" required>
+            </label>
+            <label>
+              <span>تأكيد كلمة المرور</span>
+              <input type="password" name="passwordConfirm" autocomplete="new-password" placeholder="أعد كتابة كلمة المرور" minlength="8" required>
+            </label>
+            <button class="primary-btn full" type="submit">إنشاء حساب أثر</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script src="auth.js?v=29"></script>
+  <script src="nav-direct-fixed.js?v=25"></script>
+</body>
+</html>

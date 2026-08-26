@@ -1,4 +1,4 @@
-(() => {
+(async () => {
   const STORE_WHATSAPP = '9660510390125';
 
   const form = document.getElementById('checkout-form');
@@ -8,6 +8,18 @@
   const errorNode = document.getElementById('checkout-error');
 
   if (!form || !itemsRoot) return;
+
+  if (window.ATHR_CATALOG_READY) {
+    await window.ATHR_CATALOG_READY;
+  }
+
+  if (DATA.catalogError) {
+    itemsRoot.innerHTML = '<div class="checkout-empty"><p>تعذر تحميل بيانات المنتجات حاليًا.</p><a class="secondary-btn" href="cart.html">العودة إلى السلة</a></div>';
+    form.querySelector('button[type="submit"]').disabled = true;
+    subtotalNode.textContent = '—';
+    totalNode.textContent = '—';
+    return;
+  }
 
   const cart = typeof getCart === 'function' ? getCart() : [];
   const rows = cart.map(row => ({

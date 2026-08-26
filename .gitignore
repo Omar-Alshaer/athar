@@ -1,3 +1,31 @@
+# Local/runtime secrets
+.env
+.env.*
+!.env.example
+
+# Node / build output
+node_modules/
+**/node_modules/
+dist/
+**/dist/
+.next/
+**/.next/
+coverage/
+
+# Prisma generated client
+apps/api/src/generated/prisma/
+
+# Local database / temp
+*.db
+*.db-journal
+.tmp/
+tmp/
+
+# Previous project backups
 *.bak
+
+# OS/editor
 .DS_Store
 Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,23 @@
+{
+  "name": "athr-platform",
+  "version": "0.2.0",
+  "private": true,
+  "description": "ATHR digital products platform — storefront migration foundation",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w @athr/api",
+    "build:api": "npm run build -w @athr/api",
+    "typecheck": "npm run typecheck -w @athr/api",
+    "prisma:generate": "npm run prisma:generate -w @athr/api",
+    "prisma:migrate:dev": "npm run prisma:migrate:dev -w @athr/api",
+    "prisma:seed": "npm run prisma:seed -w @athr/api",
+    "prisma:studio": "npm run prisma:studio -w @athr/api",
+    "dev:admin": "npm run dev -w @athr/admin",
+    "admin:bootstrap": "npm run admin:bootstrap -w @athr/api"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

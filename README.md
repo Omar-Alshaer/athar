@@ -1,25 +1,74 @@
-# ATHR — أثر (Frontend V1)
+# ATHR — أثر
 
-واجهة أولية عملية لمتجر أثر للمنتجات الرقمية، مبنية بـ HTML/CSS/JavaScript بدون أي اعتمادات خارجية.
+ATHR is being migrated from a static RTL digital-products storefront into a full customer/account, catalog, admin, payment and private-library platform.
 
-## التشغيل
+## Current storefront
+
+The existing HTML/CSS/JavaScript storefront remains at the repository root during the migration. This keeps the current visual design working while backend capabilities are added patch by patch.
+
+## Platform foundation
+
+Patch 027 adds:
+
+- NestJS API under `apps/api`
+- PostgreSQL + Prisma domain model
+- Cloudinary server-side image integration foundation
+- seed data for the current five categories and five products
+- models for users, sessions, wishlist, newsletter, orders, payments, customer library and admin audit logs
+- development PostgreSQL through Docker Compose
+
+Production domain plan:
+
+- `athar-online.com` — storefront
+- `admin.athar-online.com` — admin dashboard
+- `api.athar-online.com` — API
+
+## Start the foundation locally
+
+1. Create the local environment file:
 
 ```bash
-cd athr-store
-python3 -m http.server 8080
+cp .env.example .env
 ```
 
-ثم افتح: `http://localhost:8080`
+2. Start PostgreSQL:
 
-## الموجود حاليًا
-- Home RTL responsive
-- متجر مع بحث، فلترة وترتيب
-- صفحة منتج ديناميكية
-- سلة تسوق بـ localStorage
-- Checkout تجريبي وتأكيد طلب
-- صفحة عن أثر
-- هوية لونية مستوحاة من اللوجو
-- Responsive desktop/mobile
+```bash
+docker compose -f infrastructure/docker-compose.dev.yml up -d
+```
 
-## الخطوة التالية للإنتاج
-تحويل الواجهة إلى Next.js + PostgreSQL وإضافة Authentication وAdmin Dashboard وPayment Gateway وPrivate Storage وMy Library.
+3. Install dependencies:
+
+```bash
+npm install
+```
+
+4. Generate Prisma Client and create the initial migration:
+
+```bash
+npm run prisma:generate
+npm run prisma:migrate:dev -- --name platform_foundation
+```
+
+5. Seed the five existing categories/products:
+
+```bash
+npm run prisma:seed
+```
+
+6. Start the API:
+
+```bash
+npm run dev:api
+```
+
+Health endpoints:
+
+- `http://127.0.0.1:4000/api/health/live`
+- `http://127.0.0.1:4000/api/health/ready`
+
+See `docs/PLATFORM-ROADMAP.md` for the migration sequence.
+
+## Admin dashboard foundation (Patch 032)
+
+A separate admin application now lives in `apps/admin` and is designed for `admin.athar-online.com`. It uses protected admin-only API routes and a separate HttpOnly session cookie. See `docs/ADMIN-SUBDOMAIN.md` for local startup and Super Admin bootstrap instructions.

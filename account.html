@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>حسابي | أثر</title>
+  <meta name="description" content="إدارة حسابك ومكتبتك وطلباتك في أثر.">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="auth.css?v=29">
+  <link rel="stylesheet" href="nav-direct-fixed.css?v=25">
+  <link rel="icon" href="assets/athr-logo.png">
+</head>
+<body>
+  <div id="site-nav"></div>
+
+  <main class="account-page">
+    <section class="account-head">
+      <div class="container">
+        <span class="auth-kicker">حسابي</span>
+        <h1 id="account-title">مرحبًا بك في أثر</h1>
+        <p>من هنا ستدير مشترياتك ومكتبتك الرقمية وبيانات حسابك.</p>
+      </div>
+    </section>
+
+    <section class="account-section">
+      <div class="container account-grid">
+        <aside class="account-side">
+          <div class="account-avatar" id="account-avatar">أ</div>
+          <strong id="account-name">جارٍ تحميل الحساب...</strong>
+          <span id="account-email"></span>
+          <nav class="account-menu">
+            <a class="active" href="#overview">نظرة عامة</a>
+            <a href="#library">مكتبتي</a>
+            <a href="#orders">طلباتي</a>
+          </nav>
+          <button id="logout-btn" class="secondary-btn full" type="button">تسجيل الخروج</button>
+        </aside>
+
+        <div class="account-content">
+          <section class="account-panel" id="overview">
+            <div class="account-panel-head"><div><span>الحساب</span><h2>بياناتي</h2></div></div>
+            <div class="profile-grid">
+              <div><span>الاسم</span><b id="profile-name">—</b></div>
+              <div><span>البريد الإلكتروني</span><b id="profile-email">—</b></div>
+              <div><span>رقم الهاتف</span><b id="profile-phone">—</b></div>
+              <div><span>تاريخ الانضمام</span><b id="profile-created">—</b></div>
+            </div>
+          </section>
+
+          <section class="account-panel" id="library">
+            <div class="account-panel-head"><div><span>المحتوى الرقمي</span><h2>مكتبتي</h2></div><b class="status-pill">قريبًا مع الدفع</b></div>
+            <div class="account-empty">
+              <div class="account-empty-icon">↧</div>
+              <h3>ستظهر كتبك هنا بعد الشراء</h3>
+              <p>عند نجاح الدفع، سيُضاف المنتج تلقائيًا إلى مكتبتك الخاصة بدل إرسال الملف عبر واتساب.</p>
+              <a class="primary-btn" href="shop.html">تصفح المتجر</a>
+            </div>
+          </section>
+
+          <section class="account-panel" id="orders">
+            <div class="account-panel-head"><div><span>المشتريات</span><h2>طلباتي</h2></div><b class="status-pill">Payment Patch</b></div>
+            <div class="account-empty compact">
+              <h3>سجل الطلبات سيظهر هنا</h3>
+              <p>هنربطه بالـOrders وXPay في مرحلة الدفع القادمة.</p>
+            </div>
+          </section>
+
+          <section class="account-danger">
+            <div><strong>أمان الحساب</strong><p>لو سجلت الدخول على جهاز غير موثوق، تقدر تقفل كل الجلسات مرة واحدة.</p></div>
+            <button id="logout-all-btn" class="danger-outline" type="button">تسجيل الخروج من كل الأجهزة</button>
+          </section>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+  <script src="account.js?v=29"></script>
+  <script src="nav-direct-fixed.js?v=25"></script>
+</body>
+</html>
