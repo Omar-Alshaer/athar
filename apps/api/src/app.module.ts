@@ -9,6 +9,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { AdminModule } from './admin/admin.module';
+import { CommerceModule } from './commerce/commerce.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { AdminModule } from './admin/admin.module';
     WishlistModule,
     NewsletterModule,
     AdminModule,
+    CommerceModule,
   ],
   controllers: [HealthController],
 })

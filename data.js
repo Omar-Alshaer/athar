@@ -1,7 +1,8 @@
 (() => {
-  const isLocal = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
+  const localHost = window.location.hostname;
+  const isLocal = ['127.0.0.1', 'localhost'].includes(localHost);
   const apiBase = isLocal
-    ? 'http://127.0.0.1:4000/api'
+    ? `${window.location.protocol}//${localHost}:4000/api`
     : 'https://api.athar-online.com/api';
 
   const data = (window.ATHR_DATA = {

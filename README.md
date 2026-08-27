@@ -72,3 +72,13 @@ See `docs/PLATFORM-ROADMAP.md` for the migration sequence.
 ## Admin dashboard foundation (Patch 032)
 
 A separate admin application now lives in `apps/admin` and is designed for `admin.athar-online.com`. It uses protected admin-only API routes and a separate HttpOnly session cookie. See `docs/ADMIN-SUBDOMAIN.md` for local startup and Super Admin bootstrap instructions.
+
+
+## Admin catalog
+
+Authenticated catalog management and Cloudinary product media are documented in `docs/ADMIN-CATALOG.md`.
+
+### Commerce development flow (Patch 034)
+
+The checkout now creates server-side orders and uses a local hosted mock payment page while `PAYMENT_PROVIDER=mock`.
+A successful mock payment atomically marks the order/payment as paid and grants the purchased products to the customer's library. In production, mock payment completion is disabled unless `MOCK_PAYMENT_ENABLED=true` is explicitly set. XPay will replace the mock hosted checkout in a later patch without changing the order/library model.

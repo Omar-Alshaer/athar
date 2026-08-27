@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run prisma:generate && nest start --watch",
+    "dev": "npm run prisma:generate && nest start --watch --path tsconfig.build.json",
     "build": "npm run prisma:generate && nest build",
     "start": "node dist/main.js",
     "typecheck": "npm run prisma:generate && tsc --noEmit",

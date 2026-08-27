@@ -7,6 +7,7 @@
   <meta name="description" content="إدارة حسابك ومكتبتك وطلباتك في أثر.">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="auth.css?v=29">
+  <link rel="stylesheet" href="commerce.css?v=34">
   <link rel="stylesheet" href="nav-direct-fixed.css?v=25">
   <link rel="icon" href="assets/athr-logo.png">
 </head>
@@ -48,21 +49,13 @@
           </section>
 
           <section class="account-panel" id="library">
-            <div class="account-panel-head"><div><span>المحتوى الرقمي</span><h2>مكتبتي</h2></div><b class="status-pill">قريبًا مع الدفع</b></div>
-            <div class="account-empty">
-              <div class="account-empty-icon">↧</div>
-              <h3>ستظهر كتبك هنا بعد الشراء</h3>
-              <p>عند نجاح الدفع، سيُضاف المنتج تلقائيًا إلى مكتبتك الخاصة بدل إرسال الملف عبر واتساب.</p>
-              <a class="primary-btn" href="shop.html">تصفح المتجر</a>
-            </div>
+            <div class="account-panel-head"><div><span>المحتوى الرقمي</span><h2>مكتبتي</h2></div><b class="status-pill" id="library-count">0 منتج</b></div>
+            <div id="library-root" class="account-loading">جارٍ تحميل مكتبتك...</div>
           </section>
 
           <section class="account-panel" id="orders">
-            <div class="account-panel-head"><div><span>المشتريات</span><h2>طلباتي</h2></div><b class="status-pill">Payment Patch</b></div>
-            <div class="account-empty compact">
-              <h3>سجل الطلبات سيظهر هنا</h3>
-              <p>هنربطه بالـOrders وXPay في مرحلة الدفع القادمة.</p>
-            </div>
+            <div class="account-panel-head"><div><span>المشتريات</span><h2>طلباتي</h2></div><b class="status-pill" id="orders-count">0 طلب</b></div>
+            <div id="orders-root" class="account-loading">جارٍ تحميل طلباتك...</div>
           </section>
 
           <section class="account-danger">
@@ -78,7 +71,7 @@
 
   <script src="data.js"></script>
   <script src="app.js"></script>
-  <script src="account.js?v=29"></script>
+  <script src="account.js?v=34"></script>
   <script src="nav-direct-fixed.js?v=25"></script>
 </body>
 </html>

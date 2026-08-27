@@ -7,6 +7,7 @@
   <title>إتمام الطلب | أثر</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="checkout-page.css?v=26">
+  <link rel="stylesheet" href="commerce.css?v=34">
   <link rel="stylesheet" href="nav-direct-fixed.css?v=25">
   <link rel="icon" href="assets/athr-logo.png">
 <link rel="stylesheet" href="catalog-dynamic.css?v=28"></head>
@@ -18,7 +19,7 @@
       <div class="container">
         <a class="checkout-back" href="cart.html">العودة إلى السلة</a>
         <h1>إتمام الطلب</h1>
-        <p>أدخل بياناتك، راجع طلبك، ثم أكمل الطلب مباشرة عبر واتساب.</p>
+        <p>راجع بيانات حسابك وطلبك، ثم انتقل إلى بوابة الدفع الآمنة.</p>
       </div>
     </section>
 
@@ -33,15 +34,17 @@
             </div>
           </div>
 
+          <div id="checkout-auth-note" class="checkout-auth-note">جارٍ التحقق من حسابك...</div>
+
           <form id="checkout-form" novalidate>
             <label class="checkout-field">
               <span>الاسم الكامل</span>
-              <input id="checkout-name" type="text" autocomplete="name" placeholder="أدخل الاسم الكامل" required>
+              <input id="checkout-name" type="text" autocomplete="name" placeholder="أدخل الاسم الكامل" readonly required>
             </label>
 
             <label class="checkout-field">
               <span>البريد الإلكتروني</span>
-              <input id="checkout-email" type="email" autocomplete="email" placeholder="أدخل البريد الإلكتروني" required>
+              <input id="checkout-email" type="email" autocomplete="email" placeholder="أدخل البريد الإلكتروني" readonly required>
             </label>
 
             <label class="checkout-field">
@@ -52,10 +55,10 @@
             <div id="checkout-error" class="checkout-error" role="alert" aria-live="polite"></div>
 
             <button class="primary-btn full checkout-submit" type="submit">
-              إتمام الطلب عبر واتساب
+              الانتقال إلى الدفع
             </button>
 
-            <p class="checkout-note">لن يتم خصم أي مبلغ داخل الموقع حاليًا. سيتم استكمال الطلب والتنسيق عبر واتساب.</p>
+            <p class="checkout-note"><span>بيئة التطوير تستخدم بوابة دفع تجريبية تحاكي الانتقال إلى XPay. لن تُمنح الكتب إلا بعد تأكيد نجاح الدفع.</span></p>
           </form>
         </section>
 
@@ -85,7 +88,7 @@
 
   <script src="data.js"></script>
   <script src="app.js"></script>
-  <script src="checkout-page.js?v=26"></script>
+  <script src="checkout-page.js?v=34"></script>
   <script src="nav-direct-fixed.js?v=25"></script>
 </body>
 </html>

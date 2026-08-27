@@ -15,6 +15,11 @@ coverage/
 # Prisma generated client
 apps/api/src/generated/prisma/
 
+# Local/private digital files
+.private-storage/
+**/.private-storage/
+private-storage/
+
 # Local database / temp
 *.db
 *.db-journal
