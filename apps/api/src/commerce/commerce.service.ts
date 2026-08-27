@@ -4,7 +4,7 @@ import {
   NotFoundException,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import {
   LibraryGrantSource,
   OrderStatus,
@@ -17,12 +17,18 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PrivateStorageService } from '../storage/private-storage.service';
 import { AuthenticatedUser } from '../auth/session.service';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
+import {
+  XPayCheckoutSession,
+  XPayService,
+  XPayWebhookEvent,
+} from './xpay.service';
 
 @Injectable()
 export class CommerceService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly privateStorage: PrivateStorageService,
+    private readonly xpay: XPayService,
   ) {}
 
   async createCheckoutSession(user: AuthenticatedUser, dto: CreateCheckoutSessionDto) {
@@ -70,9 +76,6 @@ export class CommerceService {
 
     const currency = products[0].currency;
     const provider = this.paymentProvider();
-    if (provider !== PaymentProvider.MOCK) {
-      throw new ServiceUnavailableException('بوابة الدفع الحقيقية لم يتم تفعيلها بعد.');
-    }
 
     const orderNumber = this.generateOrderNumber();
     const total = this.centsToMoney(totalCents);
@@ -108,7 +111,10 @@ export class CommerceService {
               status: PaymentStatus.PENDING,
               amount: total,
               currency,
-              providerCheckoutId: `mock_${orderNumber}`,
+              providerCheckoutId:
+                provider === PaymentProvider.MOCK
+                  ? `mock_${orderNumber}`
+                  : null,
             },
           },
         },
@@ -119,14 +125,80 @@ export class CommerceService {
       });
     });
 
-    return {
-      order: this.serializeOrder(order),
-      payment: {
-        provider,
-        mode: 'HOSTED_MOCK',
-        checkoutPath: `payment-mock.html?order=${encodeURIComponent(order.orderNumber)}`,
-      },
-    };
+    if (provider === PaymentProvider.MOCK) {
+      return {
+        order: this.serializeOrder(order),
+        payment: {
+          provider,
+          mode: 'HOSTED_MOCK',
+          checkoutPath: `payment-mock.html?order=${encodeURIComponent(order.orderNumber)}`,
+        },
+      };
+    }
+
+    const payment = order.payments[0];
+
+    try {
+      const session = await this.xpay.createCheckoutSession({
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+          phone: dto.phone.trim(),
+        },
+        lines: lines.map((line) => ({
+          name: line.product.titleAr,
+          currency,
+          unitAmount: line.unitCents,
+          quantity: line.quantity,
+          productId: line.product.id,
+          slug: line.product.slug,
+        })),
+      });
+
+      await this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          providerCheckoutId: session.id,
+        },
+      });
+
+      return {
+        order: this.serializeOrder(order),
+        payment: {
+          provider,
+          mode: 'HOSTED_XPAY',
+          checkoutSessionId: session.id,
+          checkoutUrl: session.url,
+        },
+      };
+    } catch (error) {
+      await this.prisma
+        .$transaction([
+          this.prisma.payment.update({
+            where: { id: payment.id },
+            data: {
+              status: PaymentStatus.FAILED,
+              failureCode: 'xpay_session_creation_failed',
+              failureMessage:
+                error instanceof Error
+                  ? error.message.slice(0, 500)
+                  : 'Unknown XPay checkout error',
+            },
+          }),
+          this.prisma.order.update({
+            where: { id: order.id },
+            data: {
+              status: OrderStatus.PAYMENT_FAILED,
+            },
+          }),
+        ])
+        .catch(() => undefined);
+
+      throw error;
+    }
   }
 
   async myOrders(userId: string) {
@@ -332,6 +404,438 @@ export class CommerceService {
     });
 
     return { ok: true, alreadyPaid: false, order: this.serializeOrder(paid!) };
+  }
+
+  async handleXPayWebhook(
+    rawBody: Buffer,
+    signatureHeader?: string,
+  ) {
+    const event = this.xpay.verifyWebhook(
+      rawBody,
+      signatureHeader,
+    );
+
+    const payloadHash = createHash('sha256')
+      .update(rawBody)
+      .digest('hex');
+
+    const storedEvent =
+      await this.prisma.paymentWebhookEvent.upsert({
+        where: {
+          providerEventId: event.id,
+        },
+        create: {
+          provider: PaymentProvider.XPAY,
+          providerEventId: event.id,
+          eventType: event.type,
+          payloadHash,
+        },
+        update: {},
+      });
+
+    if (
+      storedEvent.provider !== PaymentProvider.XPAY ||
+      storedEvent.payloadHash !== payloadHash
+    ) {
+      throw new BadRequestException(
+        'Webhook event identifier reused with different content.',
+      );
+    }
+
+    if (storedEvent.processedAt) {
+      return {
+        received: true,
+        duplicate: true,
+      };
+    }
+
+    try {
+      await this.processXPayEvent(event);
+
+      await this.prisma.paymentWebhookEvent.update({
+        where: { id: storedEvent.id },
+        data: {
+          processedAt: new Date(),
+          processingError: null,
+        },
+      });
+
+      return {
+        received: true,
+        duplicate: false,
+      };
+    } catch (error) {
+      await this.prisma.paymentWebhookEvent
+        .update({
+          where: { id: storedEvent.id },
+          data: {
+            processingError:
+              error instanceof Error
+                ? error.message.slice(0, 500)
+                : 'Unknown XPay webhook error',
+          },
+        })
+        .catch(() => undefined);
+
+      throw error;
+    }
+  }
+
+  private async processXPayEvent(
+    event: XPayWebhookEvent,
+  ): Promise<void> {
+    const session = event.data.object;
+
+    if (
+      event.type === 'checkout.session.completed' ||
+      event.type ===
+        'checkout.session.async_payment_succeeded'
+    ) {
+      if (session.paymentStatus === 'paid') {
+        await this.fulfillXPaySession(session);
+      }
+
+      return;
+    }
+
+    if (
+      event.type ===
+      'checkout.session.async_payment_failed'
+    ) {
+      await this.failXPaySession(session);
+      return;
+    }
+
+    if (event.type === 'checkout.session.expired') {
+      await this.cancelXPaySession(session);
+    }
+  }
+
+  private async fulfillXPaySession(
+    session: XPayCheckoutSession,
+  ): Promise<void> {
+    const payment =
+      await this.resolveXPayPayment(session);
+
+    this.assertXPaySessionMatchesPayment(
+      session,
+      payment,
+    );
+
+    if (
+      payment.status === PaymentStatus.SUCCEEDED &&
+      payment.order.status === OrderStatus.PAID
+    ) {
+      return;
+    }
+
+    const paidAt = new Date();
+
+    const providerPaymentId =
+      session.paymentIntent?.id ||
+      session.paymentIntentId ||
+      payment.providerPaymentId ||
+      null;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: PaymentStatus.SUCCEEDED,
+          paidAt,
+          providerCheckoutId: session.id,
+          providerPaymentId,
+          failureCode: null,
+          failureMessage: null,
+        },
+      });
+
+      await tx.order.update({
+        where: { id: payment.order.id },
+        data: {
+          status: OrderStatus.PAID,
+          paidAt,
+        },
+      });
+
+      for (const item of payment.order.items) {
+        if (!item.productId) continue;
+
+        await tx.libraryItem.upsert({
+          where: {
+            userId_productId: {
+              userId: payment.order.userId,
+              productId: item.productId,
+            },
+          },
+          create: {
+            userId: payment.order.userId,
+            productId: item.productId,
+            orderItemId: item.id,
+            source: LibraryGrantSource.PURCHASE,
+          },
+          update: {
+            revokedAt: null,
+            orderItemId: item.id,
+            source: LibraryGrantSource.PURCHASE,
+          },
+        });
+      }
+    });
+  }
+
+  private async failXPaySession(
+    session: XPayCheckoutSession,
+  ): Promise<void> {
+    const payment =
+      await this.resolveXPayPayment(session);
+
+    this.assertXPaySessionMatchesPayment(
+      session,
+      payment,
+    );
+
+    if (
+      payment.status === PaymentStatus.SUCCEEDED ||
+      payment.order.status === OrderStatus.PAID
+    ) {
+      return;
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: PaymentStatus.FAILED,
+          failureCode: 'xpay_async_payment_failed',
+          failureMessage:
+            'XPay reported that the payment failed.',
+        },
+      }),
+
+      this.prisma.order.update({
+        where: { id: payment.order.id },
+        data: {
+          status: OrderStatus.PAYMENT_FAILED,
+        },
+      }),
+    ]);
+  }
+
+  private async cancelXPaySession(
+    session: XPayCheckoutSession,
+  ): Promise<void> {
+    const payment =
+      await this.resolveXPayPayment(session);
+
+    this.assertXPaySessionMatchesPayment(
+      session,
+      payment,
+    );
+
+    if (
+      payment.status === PaymentStatus.SUCCEEDED ||
+      payment.order.status === OrderStatus.PAID
+    ) {
+      return;
+    }
+
+    await this.prisma.$transaction([
+      this.prisma.payment.update({
+        where: { id: payment.id },
+        data: {
+          status: PaymentStatus.CANCELLED,
+          failureCode: 'xpay_session_expired',
+          failureMessage:
+            'XPay checkout session expired before payment.',
+        },
+      }),
+
+      this.prisma.order.update({
+        where: { id: payment.order.id },
+        data: {
+          status: OrderStatus.CANCELLED,
+        },
+      }),
+    ]);
+  }
+
+  private async resolveXPayPayment(
+    session: XPayCheckoutSession,
+  ) {
+    const direct =
+      await this.prisma.payment.findFirst({
+        where: {
+          provider: PaymentProvider.XPAY,
+          providerCheckoutId: session.id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    let paymentId = direct?.id ?? null;
+
+    if (!paymentId) {
+      const orderNumber =
+        this.xpayMetadataString(
+          session,
+          'orderNumber',
+        );
+
+      if (!orderNumber) {
+        throw new BadRequestException(
+          'XPay webhook is missing ATHR order metadata.',
+        );
+      }
+
+      const order =
+        await this.prisma.order.findFirst({
+          where: {
+            orderNumber,
+          },
+          include: {
+            payments: true,
+          },
+        });
+
+      const candidate =
+        order?.payments.find(
+          (item) =>
+            item.provider ===
+            PaymentProvider.XPAY,
+        );
+
+      if (!candidate) {
+        throw new BadRequestException(
+          'No ATHR payment matches this XPay session.',
+        );
+      }
+
+      if (
+        candidate.providerCheckoutId &&
+        candidate.providerCheckoutId !==
+          session.id
+      ) {
+        throw new BadRequestException(
+          'XPay session does not match the stored payment.',
+        );
+      }
+
+      if (!candidate.providerCheckoutId) {
+        await this.prisma.payment.update({
+          where: {
+            id: candidate.id,
+          },
+          data: {
+            providerCheckoutId: session.id,
+          },
+        });
+      }
+
+      paymentId = candidate.id;
+    }
+
+    const payment =
+      await this.prisma.payment.findUnique({
+        where: {
+          id: paymentId,
+        },
+        include: {
+          order: {
+            include: {
+              items: true,
+            },
+          },
+        },
+      });
+
+    if (!payment) {
+      throw new BadRequestException(
+        'ATHR payment was not found.',
+      );
+    }
+
+    return payment;
+  }
+
+  private assertXPaySessionMatchesPayment(
+    session: XPayCheckoutSession,
+    payment: {
+      amount: unknown;
+      currency: string;
+      order: {
+        id: string;
+        userId: string;
+        orderNumber: string;
+      };
+    },
+  ): void {
+    const orderId =
+      this.xpayMetadataString(
+        session,
+        'orderId',
+      );
+
+    const orderNumber =
+      this.xpayMetadataString(
+        session,
+        'orderNumber',
+      );
+
+    const userId =
+      this.xpayMetadataString(
+        session,
+        'userId',
+      );
+
+    if (
+      orderId !== payment.order.id ||
+      orderNumber !== payment.order.orderNumber ||
+      userId !== payment.order.userId
+    ) {
+      throw new BadRequestException(
+        'XPay ATHR order metadata mismatch.',
+      );
+    }
+
+    const expectedCents =
+      this.moneyToCents(payment.amount);
+
+    if (
+      !Number.isInteger(session.amountTotal) ||
+      session.amountTotal !== expectedCents
+    ) {
+      throw new BadRequestException(
+        'XPay payment amount mismatch.',
+      );
+    }
+
+    const sessionCurrency =
+      String(session.currency ?? '')
+        .trim()
+        .toUpperCase();
+
+    if (
+      !sessionCurrency ||
+      sessionCurrency !==
+        payment.currency.trim().toUpperCase()
+    ) {
+      throw new BadRequestException(
+        'XPay payment currency mismatch.',
+      );
+    }
+  }
+
+  private xpayMetadataString(
+    session: XPayCheckoutSession,
+    key: string,
+  ): string {
+    const value = session.metadata?.[key];
+
+    return typeof value === 'string'
+      ? value.trim()
+      : '';
   }
 
   private normalizeItems(items: CreateCheckoutSessionDto['items']) {

@@ -6,7 +6,11 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { cors: false });
+  const app = await NestFactory.create(AppModule, {
+    cors: false,
+    // Required for verifying XPay webhook signatures against the exact request bytes.
+    rawBody: true,
+  });
   const express = app.getHttpAdapter().getInstance();
 
   express.set('trust proxy', 1);
