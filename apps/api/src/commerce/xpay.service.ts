@@ -22,6 +22,10 @@ export type XPayCheckoutSession = {
   paymentStatus?: string;
   amountTotal?: number;
   currency?: string;
+  presentmentDetails?: {
+    amountTotal?: number;
+    currency?: string;
+  } | null;
   metadata?: Record<string, unknown>;
   paymentIntentId?: string;
   paymentIntent?: {

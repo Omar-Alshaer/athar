@@ -802,9 +802,17 @@ export class CommerceService {
     const expectedCents =
       this.moneyToCents(payment.amount);
 
+    const receivedCents =
+      session.presentmentDetails?.amountTotal ??
+      session.amountTotal;
+
+    const receivedCurrency =
+      session.presentmentDetails?.currency ??
+      session.currency;
+
     if (
-      !Number.isInteger(session.amountTotal) ||
-      session.amountTotal !== expectedCents
+      !Number.isInteger(receivedCents) ||
+      receivedCents !== expectedCents
     ) {
       throw new BadRequestException(
         'XPay payment amount mismatch.',
@@ -812,7 +820,7 @@ export class CommerceService {
     }
 
     const sessionCurrency =
-      String(session.currency ?? '')
+      String(receivedCurrency ?? '')
         .trim()
         .toUpperCase();
 
