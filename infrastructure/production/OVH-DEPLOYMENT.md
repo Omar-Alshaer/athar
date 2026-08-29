@@ -34,7 +34,7 @@ install -d -o root -g root -m 0700 /var/backups/athr
 install -d -o www-data -g www-data -m 0755 /var/www/letsencrypt
 ```
 
-PostgreSQL must listen only on loopback. Create a dedicated database/user with a unique random password, persist data under the distribution-managed PostgreSQL data directory, and keep port 5432 closed publicly. Permit only SSH, HTTP, and HTTPS in the firewall; port 4000 remains loopback-only.
+PostgreSQL must listen only on loopback. Create a dedicated database/user with a unique random password, persist data under the distribution-managed PostgreSQL data directory, and keep port 5432 closed publicly. Permit only SSH, HTTP, and HTTPS in the firewall; port 4200 remains loopback-only.
 
 ## 3. Secrets and domains
 

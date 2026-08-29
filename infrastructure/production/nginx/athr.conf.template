@@ -82,20 +82,20 @@ server {
 
     location = /api/auth/login {
         limit_req zone=athr_auth burst=5 nodelay;
-        proxy_pass http://127.0.0.1:4000;
+        proxy_pass http://127.0.0.1:4200;
         include proxy_params;
         proxy_set_header X-Forwarded-Proto https;
     }
 
     location = /api/admin/auth/login {
         limit_req zone=athr_auth burst=3 nodelay;
-        proxy_pass http://127.0.0.1:4000;
+        proxy_pass http://127.0.0.1:4200;
         include proxy_params;
         proxy_set_header X-Forwarded-Proto https;
     }
 
     location /api/ {
-        proxy_pass http://127.0.0.1:4000;
+        proxy_pass http://127.0.0.1:4200;
         proxy_http_version 1.1;
         include proxy_params;
         proxy_set_header X-Forwarded-Proto https;
