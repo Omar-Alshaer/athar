@@ -1,5 +1,5 @@
 (() => {
-  const apiBase = window.ATHR_DATA?.apiBase || 'http://127.0.0.1:4000/api';
+  const apiBase = window.ATHR_DATA?.apiBase || 'http://localhost:4000/api';
   const message = document.getElementById('auth-message');
   const tabs = [...document.querySelectorAll('[data-auth-tab]')];
   const loginForm = document.getElementById('login-form');

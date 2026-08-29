@@ -34,3 +34,11 @@ tmp/
 Thumbs.db
 .vscode/
 .idea/
+
+
+# Local ATHR runtime storage
+.local/
+
+# Python cache
+**/__pycache__/
+*.py[cod]
