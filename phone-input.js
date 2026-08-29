@@ -27,7 +27,13 @@
         instance.setNumber(String(value || ''));
       },
       value() {
-        const country = instance.getSelectedCountryData();
+        const country =
+          typeof instance.getSelectedCountry === 'function'
+            ? instance.getSelectedCountry()
+            : typeof instance.getSelectedCountryData === 'function'
+              ? instance.getSelectedCountryData()
+              : null;
+
         if (!country?.iso2 || !instance.isValidNumber()) {
           throw new Error('رقم الهاتف غير صالح للدولة المحددة.');
         }
