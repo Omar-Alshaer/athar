@@ -69,8 +69,8 @@ const products = [
     titleAr: 'قصص الأطفال والقصص التربوية',
     subtitleAr: 'مجموعة قصص ومحتوى تربوي هادف يساعد على غرس القيم وتنمية شخصية الطفل بطريقة ممتعة.',
     price: 39.99,
-    ratingAverage: 4.9,
-    reviewCount: 53,
+    ratingAverage: 0,
+    reviewCount: 0,
   },
   {
     slug: 'mental-balance',
@@ -78,8 +78,8 @@ const products = [
     titleAr: 'الصحة النفسية والتوازن',
     subtitleAr: 'محتوى وأدوات عملية تساعد على تقليل الضغوط وتحسين جودة الحياة والتوازن النفسي.',
     price: 39.99,
-    ratingAverage: 4.8,
-    reviewCount: 74,
+    ratingAverage: 0,
+    reviewCount: 0,
   },
   {
     slug: 'family-relations',
@@ -87,8 +87,8 @@ const products = [
     titleAr: 'الأسرة والتربية والعلاقات',
     subtitleAr: 'أدلة ومحتوى يساعد على بناء أسرة مستقرة وتعزيز العلاقات والتربية الإيجابية.',
     price: 39.99,
-    ratingAverage: 4.8,
-    reviewCount: 83,
+    ratingAverage: 0,
+    reviewCount: 0,
   },
   {
     slug: 'growth-habits',
@@ -96,8 +96,8 @@ const products = [
     titleAr: 'تطوير الذات والإنتاجية وبناء العادات',
     subtitleAr: 'أدوات تساعد على تنظيم الحياة وإدارة الوقت وبناء العادات الإيجابية وتحقيق الأهداف.',
     price: 39.99,
-    ratingAverage: 4.9,
-    reviewCount: 128,
+    ratingAverage: 0,
+    reviewCount: 0,
   },
   {
     slug: 'money-management',
@@ -105,8 +105,8 @@ const products = [
     titleAr: 'النجاح المالي وتحسين إدارة الأموال',
     subtitleAr: 'محتوى رقمي يساعد على إدارة الأموال بوعي أكبر وبناء مصادر دخل إضافية واتخاذ قرارات مالية أفضل.',
     price: 39.99,
-    ratingAverage: 4.9,
-    reviewCount: 82,
+    ratingAverage: 0,
+    reviewCount: 0,
   },
 ];
 
