@@ -42,6 +42,7 @@ export class CommerceService {
       where: {
         slug: { in: slugs },
         status: ProductStatus.PUBLISHED,
+        digitalFileKey: { not: null },
         category: { isActive: true },
       },
       select: {

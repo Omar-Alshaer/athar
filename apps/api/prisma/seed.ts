@@ -126,14 +126,14 @@ async function main() {
       where: { slug: data.slug },
       update: {
         ...data,
-        status: ProductStatus.PUBLISHED,
+        status: ProductStatus.DRAFT,
         featured: true,
         badgeAr: 'منتج أثر',
         category: { connect: { slug: categorySlug } },
       },
       create: {
         ...data,
-        status: ProductStatus.PUBLISHED,
+        status: ProductStatus.DRAFT,
         featured: true,
         badgeAr: 'منتج أثر',
         category: { connect: { slug: categorySlug } },

@@ -250,6 +250,12 @@ export class AdminService {
     await this.assertProductSlugAvailable(dto.slug);
 
     const status = dto.status ?? ProductStatus.DRAFT;
+    if (status === ProductStatus.PUBLISHED) {
+      throw new BadRequestException(
+        'أنشئ المنتج كمسودة أولًا، ثم ارفع الملف الرقمي قبل نشره.',
+      );
+    }
+
     const product = await this.prisma.product.create({
       data: {
         slug: dto.slug,
@@ -264,7 +270,7 @@ export class AdminService {
         badgeAr: dto.badgeAr?.trim(),
         formatLabelAr: dto.formatLabelAr?.trim() || 'PDF رقمي',
         contentLabelAr: dto.contentLabelAr?.trim() || 'منتج رقمي',
-        publishedAt: status === ProductStatus.PUBLISHED ? new Date() : null,
+        publishedAt: null,
       },
       include: productAdminInclude,
     });
@@ -287,6 +293,17 @@ export class AdminService {
     }
 
     const nextStatus = dto.status ?? existing.status;
+
+    if (
+      nextStatus === ProductStatus.PUBLISHED &&
+      existing.status !== ProductStatus.PUBLISHED &&
+      !existing.digitalFileKey
+    ) {
+      throw new BadRequestException(
+        'لا يمكن نشر المنتج قبل رفع الملف الرقمي.',
+      );
+    }
+
     const product = await this.prisma.product.update({
       where: { id },
       data: {
@@ -420,6 +437,8 @@ export class AdminService {
         digitalFileName: null,
         digitalFileMime: null,
         digitalFileBytes: null,
+        status: ProductStatus.DRAFT,
+        publishedAt: null,
       },
     });
     await this.privateStorage.deleteFile(oldKey).catch(() => undefined);
