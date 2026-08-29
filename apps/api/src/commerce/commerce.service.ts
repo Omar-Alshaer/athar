@@ -802,22 +802,12 @@ export class CommerceService {
     const expectedCents =
       this.moneyToCents(payment.amount);
 
-    const receivedCents =
-      session.presentmentDetails?.amountTotal ??
-      session.amountTotal;
+    const presentment =
+      session.presentmentDetails;
 
     const receivedCurrency =
-      session.presentmentDetails?.currency ??
+      presentment?.currency ??
       session.currency;
-
-    if (
-      !Number.isInteger(receivedCents) ||
-      receivedCents !== expectedCents
-    ) {
-      throw new BadRequestException(
-        'XPay payment amount mismatch.',
-      );
-    }
 
     const sessionCurrency =
       String(receivedCurrency ?? '')
@@ -831,6 +821,47 @@ export class CommerceService {
     ) {
       throw new BadRequestException(
         'XPay payment currency mismatch.',
+      );
+    }
+
+    if (presentment) {
+      const subtotal =
+        presentment.amountSubtotal ??
+        presentment.amount;
+
+      if (
+        !Number.isInteger(subtotal) ||
+        subtotal !== expectedCents
+      ) {
+        throw new BadRequestException(
+          'XPay payment subtotal mismatch.',
+        );
+      }
+
+      if ((presentment.amountDiscount ?? 0) !== 0) {
+        throw new BadRequestException(
+          'Unexpected XPay payment discount.',
+        );
+      }
+
+      const finalAmount =
+        presentment.amountTotal;
+
+      if (
+        typeof finalAmount !== 'number' ||
+        !Number.isInteger(finalAmount) ||
+        Math.abs(finalAmount - expectedCents) > 1
+      ) {
+        throw new BadRequestException(
+          'XPay payment amount mismatch.',
+        );
+      }
+    } else if (
+      !Number.isInteger(session.amountTotal) ||
+      session.amountTotal !== expectedCents
+    ) {
+      throw new BadRequestException(
+        'XPay payment amount mismatch.',
       );
     }
   }
@@ -847,15 +878,34 @@ export class CommerceService {
   }
 
   private normalizeItems(items: CreateCheckoutSessionDto['items']) {
-    const merged = new Map<string, number>();
+    const seen = new Set<string>();
+
     for (const item of items) {
       const slug = item.slug.trim();
-      if (!slug) throw new BadRequestException('معرف المنتج غير صالح.');
-      const next = (merged.get(slug) ?? 0) + item.quantity;
-      if (next > 10) throw new BadRequestException('الحد الأقصى للكمية من المنتج الواحد هو 10.');
-      merged.set(slug, next);
+
+      if (!slug) {
+        throw new BadRequestException('معرف المنتج غير صالح.');
+      }
+
+      if (item.quantity !== 1) {
+        throw new BadRequestException(
+          'يمكن شراء نسخة واحدة فقط من كل منتج رقمي.',
+        );
+      }
+
+      if (seen.has(slug)) {
+        throw new BadRequestException(
+          'لا يمكن إضافة نفس المنتج الرقمي أكثر من مرة.',
+        );
+      }
+
+      seen.add(slug);
     }
-    return [...merged.entries()].map(([slug, quantity]) => ({ slug, quantity }));
+
+    return [...seen].map((slug) => ({
+      slug,
+      quantity: 1,
+    }));
   }
 
   private paymentProvider(): PaymentProvider {

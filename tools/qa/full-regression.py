@@ -303,12 +303,11 @@ def ensure_local_stack() -> dict[str, subprocess.Popen[bytes] | None]:
         "store": None,
     }
 
-    # Build/typecheck happens before this. If a watch process was disrupted by
-    # generated/build output, start a fresh local service only when its port
-    # is no longer listening.
+    # Build/typecheck happens before this. QA runs the compiled API directly
+    # for deterministic regression behavior and only starts missing services.
     started["api"] = start_local_service(
         "Local API",
-        ["npm", "run", "dev:api"],
+        ["node", "apps/api/dist/main.js"],
         port=4000,
         log_path="/tmp/athr-qa-api.log",
     )
@@ -602,9 +601,7 @@ def main() -> int:
             f"HTTP {admin_page.status}",
         )
 
-        # `npm run build:api` regenerates Prisma sources. If `dev:api` is
-        # running in watch mode, that can briefly restart Nest. Wait for the
-        # API instead of treating that expected restart window as a failure.
+        # Wait for the compiled API to become ready before starting E2E checks.
         live = wait_for_json(plain, f"{API}/health/live")
         expect(live.get("status") == "ok", "API liveness")
 
@@ -720,7 +717,7 @@ def main() -> int:
                 "descriptionAr": "QA temporary product",
                 "categoryId": category_id,
                 "price": 1.23,
-                "currency": "USD",
+                "currency": "SAR",
                 "status": "PUBLISHED",
                 "featured": False,
                 "formatLabelAr": "PDF رقمي",
@@ -853,6 +850,48 @@ def main() -> int:
         expect(
             news2.get("alreadySubscribed") is True,
             "Newsletter duplicate is idempotent",
+        )
+
+        quantity_rejected = customer.request(
+            "POST",
+            f"{API}/commerce/checkout/session",
+            json_body={
+                "items": [
+                    {
+                        "slug": product_slug,
+                        "quantity": 2,
+                    }
+                ],
+                "phone": "+201000000000",
+            },
+            allow_error=True,
+        )
+        expect(
+            quantity_rejected.status == 400,
+            "Checkout rejects quantity greater than one",
+        )
+
+        duplicate_rejected = customer.request(
+            "POST",
+            f"{API}/commerce/checkout/session",
+            json_body={
+                "items": [
+                    {
+                        "slug": product_slug,
+                        "quantity": 1,
+                    },
+                    {
+                        "slug": product_slug,
+                        "quantity": 1,
+                    },
+                ],
+                "phone": "+201000000000",
+            },
+            allow_error=True,
+        )
+        expect(
+            duplicate_rejected.status == 400,
+            "Checkout rejects duplicate digital product",
         )
 
         checkout = customer.request(

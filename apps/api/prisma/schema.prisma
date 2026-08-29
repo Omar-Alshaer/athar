@@ -148,7 +148,7 @@ model Product {
   descriptionAr    String?
   categoryId       String
   price            Decimal         @db.Decimal(10, 2)
-  currency         String          @default("USD")
+  currency         String          @default("SAR")
   status           ProductStatus   @default(DRAFT)
   featured         Boolean         @default(false)
   badgeAr          String?
@@ -224,7 +224,7 @@ model Order {
   orderNumber String      @unique
   userId      String
   status      OrderStatus @default(PENDING_PAYMENT)
-  currency    String      @default("USD")
+  currency    String      @default("SAR")
   subtotal    Decimal     @db.Decimal(10, 2)
   total       Decimal     @db.Decimal(10, 2)
   paidAt      DateTime?
@@ -261,7 +261,7 @@ model Payment {
   provider           PaymentProvider
   status             PaymentStatus   @default(PENDING)
   amount             Decimal         @db.Decimal(10, 2)
-  currency           String          @default("USD")
+  currency           String          @default("SAR")
   providerCheckoutId String?         @unique
   providerPaymentId  String?         @unique
   failureCode        String?

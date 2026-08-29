@@ -43,7 +43,7 @@
       title: product.titleAr,
       category: categorySlug,
       price: Number(product.price),
-      currency: product.currency || 'USD',
+      currency: product.currency || 'SAR',
       rating: Number(product.ratingAverage || 0),
       reviews: Number(product.reviewCount || 0),
       badge: product.badgeAr || 'منتج أثر',

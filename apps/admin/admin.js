@@ -48,7 +48,7 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
-function money(value, currency = 'USD') {
+function money(value, currency = 'SAR') {
   return new Intl.NumberFormat('ar-EG', { style: 'currency', currency }).format(Number(value || 0));
 }
 
@@ -301,7 +301,7 @@ async function openProductEditor(id = null) {
         <label>العنوان الفرعي<input name="subtitleAr" required minlength="2" maxlength="220" value="${esc(product?.subtitleAr || '')}"></label>
         <div class="form-grid three">
           <label>التصنيف<select name="categoryId" required><option value="">اختر التصنيف</option>${categoryOptions(product?.categoryId || product?.category?.id || '')}</select></label>
-          <label>السعر بالدولار<input name="price" type="number" min="0.01" step="0.01" required value="${product?.price ?? '9.99'}"></label>
+          <label>السعر بالريال السعودي<input name="price" type="number" min="0.01" step="0.01" required value="${product?.price ?? '39.99'}"></label>
           <label>الحالة<select name="status"><option value="DRAFT" ${product?.status === 'DRAFT' || !product ? 'selected' : ''}>مسودة</option><option value="PUBLISHED" ${product?.status === 'PUBLISHED' ? 'selected' : ''}>منشور</option><option value="ARCHIVED" ${product?.status === 'ARCHIVED' ? 'selected' : ''}>مؤرشف</option></select></label>
         </div>
         <div class="form-grid three">
@@ -386,7 +386,7 @@ async function submitProductForm(event) {
     subtitleAr: form.elements.subtitleAr.value.trim(),
     categoryId: form.elements.categoryId.value,
     price: Number(form.elements.price.value),
-    currency: 'USD',
+    currency: 'SAR',
     status: form.elements.status.value,
     featured: form.elements.featured.checked,
     badgeAr: form.elements.badgeAr.value.trim(),

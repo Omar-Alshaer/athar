@@ -159,7 +159,7 @@ export class AdminService {
         payments: { successful: successfulPayments },
         revenue: {
           amount: Number(revenue._sum.total ?? 0),
-          currency: 'USD',
+          currency: 'SAR',
         },
       },
       cloudinary: { configured: this.cloudinary.isConfigured() },
@@ -257,7 +257,7 @@ export class AdminService {
         descriptionAr: dto.descriptionAr?.trim(),
         categoryId: dto.categoryId,
         price: dto.price,
-        currency: dto.currency ?? 'USD',
+        currency: dto.currency ?? 'SAR',
         status,
         featured: dto.featured ?? false,
         badgeAr: dto.badgeAr?.trim(),

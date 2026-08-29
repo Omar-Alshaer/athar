@@ -23,8 +23,12 @@ export type XPayCheckoutSession = {
   amountTotal?: number;
   currency?: string;
   presentmentDetails?: {
+    amount?: number;
+    amountSubtotal?: number;
     amountTotal?: number;
+    amountDiscount?: number;
     currency?: string;
+    exchangeRate?: number;
   } | null;
   metadata?: Record<string, unknown>;
   paymentIntentId?: string;
@@ -74,6 +78,7 @@ export class XPayService {
       .replace(/\/+$/, '');
 
     const body = {
+      currency: input.lines[0].currency.toUpperCase(),
       mode: 'payment',
       uiMode: 'hosted',
       submitType: 'PAY',

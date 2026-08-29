@@ -62,7 +62,7 @@
     product: DATA.products.find(product => product.id === row.id),
   })).filter(item => item.product);
 
-  const subtotal = rows.reduce((sum, item) => sum + item.product.price * item.row.qty, 0);
+  const subtotal = rows.reduce((sum, item) => sum + item.product.price, 0);
 
   if (!rows.length) {
     itemsRoot.innerHTML = '<div class="checkout-empty"><p>سلتك فارغة حاليًا.</p><a class="primary-btn" href="shop.html">تصفح المنتجات</a></div>';
@@ -76,9 +76,9 @@
     <div class="checkout-item">
       <div class="checkout-item-main">
         <strong>${escapeHtml(product.title)}</strong>
-        <span>${escapeHtml(product.format || 'منتج رقمي')} × ${row.qty}</span>
+        <span>${escapeHtml(product.format || 'منتج رقمي')} · نسخة واحدة</span>
       </div>
-      <b class="checkout-item-price">${money(product.price * row.qty)}</b>
+      <b class="checkout-item-price">${money(product.price)}</b>
     </div>
   `).join('');
 
@@ -112,7 +112,7 @@
         method: 'POST',
         body: JSON.stringify({
           phone,
-          items: rows.map(({ row, product }) => ({ slug: product.id, quantity: row.qty })),
+          items: rows.map(({ product }) => ({ slug: product.id, quantity: 1 })),
         }),
       });
 

@@ -1,10 +1,17 @@
 (() => {
-  const apiBase = window.ATHR_DATA?.apiBase || 'http://127.0.0.1:4000/api';
+  const apiBase = window.ATHR_DATA?.apiBase || 'http://localhost:4000/api';
   const title = document.getElementById('account-title');
   if (!title) return;
 
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch]));
-  const money = value => `${Number(value).toFixed(2)}$`;
+  const money = (value, currency = 'SAR') => {
+    const amount = Number(value);
+    if (currency === 'SAR') return `${amount.toFixed(2)} ر.س`;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency
+    }).format(amount);
+  };
   const formatBytes = value => {
     const bytes = Number(value || 0);
     if (!bytes) return '';
@@ -108,9 +115,9 @@
           <span class="order-status ${statusClass(order.status)}">${statusLabel(order.status)}</span>
         </div>
         <div class="order-lines">
-          ${order.items.map(item => `<div class="order-line"><span>${escapeHtml(item.title)} × ${item.quantity}</span><b>${money(item.lineTotal)}</b></div>`).join('')}
+          ${order.items.map(item => `<div class="order-line"><span>${escapeHtml(item.title)} × ${item.quantity}</span><b>${money(item.lineTotal, order.currency)}</b></div>`).join('')}
         </div>
-        <div class="order-total"><span>الإجمالي</span><b>${money(order.total)}</b></div>
+        <div class="order-total"><span>الإجمالي</span><b>${money(order.total, order.currency)}</b></div>
         ${order.status === 'PENDING_PAYMENT' ? `<div class="library-actions"><a class="primary-btn" href="payment-mock.html?order=${encodeURIComponent(order.orderNumber)}">استكمال الدفع</a></div>` : ''}
       </article>
     `).join('');

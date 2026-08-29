@@ -20,7 +20,14 @@ const icons = {
   trash:'<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 15H6L5 6"/><path d="M10 11v6M14 11v6"/>'
 };
 function icon(name, cls='') { return `<svg class="icon ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]||''}</svg>`; }
-function money(value){ return `${Number(value).toFixed(2)}$`; }
+function money(value, currency='SAR'){
+  const amount = Number(value);
+  if (currency === 'SAR') return `${amount.toFixed(2)} ر.س`;
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency
+  }).format(amount);
+}
 function escapeHtml(value){ return String(value??'').replace(/[&<>"']/g,ch=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch])); }
 function productCoverClass(p){ return p?.cover||'cover-green'; }
 function catalogUnavailableMarkup(){ return '<div class="empty-state catalog-unavailable"><h3>تعذر تحميل المنتجات حاليًا</h3><p>تأكد من تشغيل خدمة أثر ثم أعد تحميل الصفحة.</p></div>'; }
@@ -31,12 +38,48 @@ function productCoverVisual(p,cat){
   return `<span class="cover-brand">أثر</span><strong>${escapeHtml(p.title)}</strong><small>${escapeHtml(cat?.short||'')}</small><span class="cover-leaf">❧</span>`;
 }
 
-function getCart(){ try{return JSON.parse(localStorage.getItem('athr-cart')||'[]')}catch{return[]} }
+function getCart(){
+  try{
+    const raw=JSON.parse(localStorage.getItem('athr-cart')||'[]');
+    if(!Array.isArray(raw)) return [];
+
+    const seen=new Set();
+
+    return raw
+      .filter(row=>{
+        if(!row || typeof row.id!=='string' || seen.has(row.id)) return false;
+        seen.add(row.id);
+        return true;
+      })
+      .map(row=>({id:row.id,qty:1}));
+  }catch{
+    return [];
+  }
+}
 function saveCart(cart){ localStorage.setItem('athr-cart',JSON.stringify(cart)); updateCartCount(); }
-function addToCart(id, qty=1){ const cart=getCart(); const row=cart.find(x=>x.id===id); if(row) row.qty+=qty; else cart.push({id,qty}); saveCart(cart); toast('تمت إضافة المنتج إلى السلة'); }
+function addToCart(id){
+  const cart=getCart();
+  const row=cart.find(x=>x.id===id);
+
+  if(row){
+    toast('المنتج موجود بالفعل في السلة');
+    return;
+  }
+
+  cart.push({id,qty:1});
+  saveCart(cart);
+  toast('تمت إضافة المنتج إلى السلة');
+}
 function removeFromCart(id){ saveCart(getCart().filter(x=>x.id!==id)); renderCart(); }
-function setQty(id, qty){ const cart=getCart(); const row=cart.find(x=>x.id===id); if(!row)return; row.qty=Math.max(1,qty); saveCart(cart); renderCart(); }
-function updateCartCount(){ const count=getCart().reduce((s,x)=>s+x.qty,0); $$('.cart-count').forEach(el=>el.textContent=count); }
+function setQty(id){
+  const cart=getCart();
+  const row=cart.find(x=>x.id===id);
+  if(!row)return;
+  row.qty=1;
+  saveCart(cart);
+  renderCart();
+}
+function updateCartCount(){ const count=getCart().length; $$('.cart-count').forEach(el=>el.textContent=count); }
 function toast(msg){ let t=$('.toast'); if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)} t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2200); }
 
 const WISHLIST_STORAGE_KEY='athr-wishlist';
@@ -316,8 +359,8 @@ function renderCart(){
   if(DATA.catalogError){ root.innerHTML=catalogUnavailableMarkup(); return; }
   const cart=getCart(); const rows=cart.map(row=>({row,p:DATA.products.find(p=>p.id===row.id)})).filter(x=>x.p);
   if(!rows.length){root.innerHTML='<div class="empty-cart"><div class="empty-bag">'+icon('bag')+'</div><h2>سلتك ما زالت فارغة</h2><p>اكتشف منتجات أثر واختر ما يناسب رحلتك.</p><a class="primary-btn" href="shop.html">تصفح المتجر</a></div>';return}
-  const subtotal=rows.reduce((s,x)=>s+x.p.price*x.row.qty,0);
-  root.innerHTML=`<div class="cart-layout"><div class="cart-items">${rows.map(({row,p})=>`<div class="cart-row"><a class="cover cart-cover ${productCoverClass(p)} ${p.coverUrl?'has-cloudinary-image':''}" href="product.html?id=${encodeURIComponent(p.id)}">${p.coverUrl?`<img class="product-cover-image" src="${escapeHtml(p.coverUrl)}" alt="${escapeHtml(p.coverAlt||p.title)}" loading="lazy">`:`<span class="cover-brand">أثر</span><strong>${escapeHtml(p.title)}</strong>`}</a><div class="cart-main"><a href="product.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a><span>${escapeHtml(p.format)}</span><b>${money(p.price)}</b></div><div class="qty"><button onclick="setQty('${p.id}',${row.qty-1})">−</button><span>${row.qty}</span><button onclick="setQty('${p.id}',${row.qty+1})">+</button></div><strong>${money(p.price*row.qty)}</strong><button class="trash" onclick="removeFromCart('${p.id}')">${icon('trash')}</button></div>`).join('')}</div>
+  const subtotal=rows.reduce((s,x)=>s+x.p.price,0);
+  root.innerHTML=`<div class="cart-layout"><div class="cart-items">${rows.map(({row,p})=>`<div class="cart-row"><a class="cover cart-cover ${productCoverClass(p)} ${p.coverUrl?'has-cloudinary-image':''}" href="product.html?id=${encodeURIComponent(p.id)}">${p.coverUrl?`<img class="product-cover-image" src="${escapeHtml(p.coverUrl)}" alt="${escapeHtml(p.coverAlt||p.title)}" loading="lazy">`:`<span class="cover-brand">أثر</span><strong>${escapeHtml(p.title)}</strong>`}</a><div class="cart-main"><a href="product.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a><span>${escapeHtml(p.format)}</span><b>${money(p.price)}</b></div><div class="qty"><span>نسخة رقمية واحدة</span></div><strong>${money(p.price)}</strong><button class="trash" onclick="removeFromCart('${p.id}')">${icon('trash')}</button></div>`).join('')}</div>
   <aside class="order-summary"><h2>ملخص الطلب</h2><div><span>المجموع</span><b>${money(subtotal)}</b></div><div><span>التوصيل</span><b>رقمي — مجاني</b></div><hr><div class="total"><span>الإجمالي</span><b>${money(subtotal)}</b></div><button class="primary-btn full" id="checkout-open">إتمام الطلب</button><p>${icon('shield')} دفع آمن — لن يتم طلب عنوان شحن للمنتجات الرقمية.</p></aside></div>`;
   $('#checkout-open')?.addEventListener('click',()=>{ window.location.href='checkout.html'; });
 }
@@ -356,7 +399,7 @@ function openCheckout(total){
     const cart=getCart();
     const lines=cart.map(row=>{
       const p=DATA.products.find(item=>item.id===row.id);
-      return p ? `• ${p.title} × ${row.qty} — ${money(p.price*row.qty)}` : '';
+      return p ? `• ${p.title} — ${money(p.price)}` : '';
     }).filter(Boolean);
     const message=[
       'مرحبًا أثر، أريد إكمال هذا الطلب:',
