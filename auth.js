@@ -7,6 +7,15 @@
 
   if (!loginForm || !registerForm) return;
 
+  let phoneInput;
+  try {
+    phoneInput = window.ATHR_PHONE.create(document.getElementById('register-phone'), {
+      initialCountry: 'SA',
+    });
+  } catch (error) {
+    showMessage(error.message);
+  }
+
   const nextUrl = new URLSearchParams(location.search).get('next') || 'account.html';
 
   function showMessage(text, type = 'error') {
@@ -87,12 +96,25 @@
       return;
     }
 
+    if (!/(?=.*\p{L})(?=.*\d)/u.test(password)) {
+      showMessage('كلمة المرور يجب أن تحتوي على حرف ورقم على الأقل.');
+      return;
+    }
+
+    let normalizedPhone;
+    try {
+      normalizedPhone = phoneInput.value();
+    } catch (error) {
+      showMessage(error.message);
+      return;
+    }
+
     button.disabled = true;
     try {
       await request('/auth/register', {
         fullName: String(data.get('fullName') || '').trim(),
         email: String(data.get('email') || '').trim(),
-        phone: String(data.get('phone') || '').trim() || undefined,
+        ...normalizedPhone,
         password,
       });
       showMessage('تم إنشاء حسابك بنجاح.', 'success');

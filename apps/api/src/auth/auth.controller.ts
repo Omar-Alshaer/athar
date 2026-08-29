@@ -46,12 +46,16 @@ export class AuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const rateKey = `login:${this.clientKey(request)}:${dto.email.trim().toLowerCase()}`;
+    const clientKey = this.clientKey(request);
+    const rateKey = `login:${clientKey}:${dto.email.trim().toLowerCase()}`;
+    const ipRateKey = `login-ip:${clientKey}`;
+    this.rateLimit.assertAllowed(ipRateKey);
     this.rateLimit.assertAllowed(rateKey);
 
     const result = await this.auth.login(dto);
     this.setSessionCookie(response, result.sessionToken);
     this.rateLimit.clear(rateKey);
+    this.rateLimit.clear(ipRateKey);
 
     return { user: result.user };
   }

@@ -1,84 +1,41 @@
 # ATHR — أثر
 
-ATHR is being migrated from a static RTL digital-products storefront into a full customer/account, catalog, admin, payment and private-library platform.
+ATHR is a production-oriented Arabic digital-products store with a static RTL storefront and admin interface, a NestJS API, PostgreSQL/Prisma, Cloudinary product images, private filesystem delivery, and XPay Hosted Checkout.
 
-## Current storefront
-
-The existing HTML/CSS/JavaScript storefront remains at the repository root during the migration. This keeps the current visual design working while backend capabilities are added patch by patch.
-
-## Platform foundation
-
-Patch 027 adds:
-
-- NestJS API under `apps/api`
-- PostgreSQL + Prisma domain model
-- Cloudinary server-side image integration foundation
-- seed data for the current five categories and five products
-- models for users, sessions, wishlist, newsletter, orders, payments, customer library and admin audit logs
-- development PostgreSQL through Docker Compose
-
-Production domain plan:
+The confirmed production domain plan is:
 
 - `athar-online.com` — storefront
-- `admin.athar-online.com` — admin dashboard
-- `api.athar-online.com` — API
+- `admin.athar-online.com` — administration
+- `api.athar-online.com` — API and XPay webhook
 
-## Start the foundation locally
+## Local development
 
-1. Create the local environment file:
+1. Copy `.env.example` to the ignored `.env` and replace placeholders.
+2. Start local PostgreSQL: `docker compose -f infrastructure/docker-compose.dev.yml up -d`.
+3. Run `npm ci`, `npm run prisma:migrate:deploy`, and `npm run prisma:seed` if the starter catalog is wanted.
+4. Start the API with `npm run dev:api` and the admin with `npm run dev:admin`.
 
-```bash
-cp .env.example .env
-```
+MOCK payment exists only for local automated regression. Production startup fails unless `PAYMENT_PROVIDER=xpay` and `MOCK_PAYMENT_ENABLED=false`.
 
-2. Start PostgreSQL:
-
-```bash
-docker compose -f infrastructure/docker-compose.dev.yml up -d
-```
-
-3. Install dependencies:
+## Verification
 
 ```bash
-npm install
+npm run test:phone
+npm run test:production-config
+npm run typecheck
+npm run build:web
+npm run build:api
+python3 tools/qa/full-regression.py
 ```
 
-4. Generate Prisma Client and create the initial migration:
+The regression runner starts the compiled API, creates isolated QA records, exercises the complete local payment/library/download flow, and cleans up.
 
-```bash
-npm run prisma:generate
-npm run prisma:migrate:dev -- --name platform_foundation
-```
+## Production on OVH
 
-5. Seed the five existing categories/products:
+Use [infrastructure/production/OVH-DEPLOYMENT.md](infrastructure/production/OVH-DEPLOYMENT.md). Production database migrations use only `prisma migrate deploy`; the seed command is explicit and is never part of deployment.
 
-```bash
-npm run prisma:seed
-```
+The production webhook endpoint is:
 
-6. Start the API:
+`https://api.athar-online.com/api/commerce/webhooks/xpay`
 
-```bash
-npm run dev:api
-```
-
-Health endpoints:
-
-- `http://127.0.0.1:4000/api/health/live`
-- `http://127.0.0.1:4000/api/health/ready`
-
-See `docs/PLATFORM-ROADMAP.md` for the migration sequence.
-
-## Admin dashboard foundation (Patch 032)
-
-A separate admin application now lives in `apps/admin` and is designed for `admin.athar-online.com`. It uses protected admin-only API routes and a separate HttpOnly session cookie. See `docs/ADMIN-SUBDOMAIN.md` for local startup and Super Admin bootstrap instructions.
-
-
-## Admin catalog
-
-Authenticated catalog management and Cloudinary product media are documented in `docs/ADMIN-CATALOG.md`.
-
-### Commerce development flow (Patch 034)
-
-The checkout now creates server-side orders and uses a local hosted mock payment page while `PAYMENT_PROVIDER=mock`.
-A successful mock payment atomically marks the order/payment as paid and grants the purchased products to the customer's library. In production, mock payment completion is disabled unless `MOCK_PAYMENT_ENABLED=true` is explicitly set. XPay will replace the mock hosted checkout in a later patch without changing the order/library model.
+LIVE operation still requires an activated XPay LIVE account, LIVE API key, and LIVE webhook signing secret. Never use test secrets or a temporary tunnel in production.

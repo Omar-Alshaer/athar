@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
-import { mkdir, stat, unlink, writeFile } from 'node:fs/promises';
+import { access, mkdir, stat, unlink, writeFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
 import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 export type StoredPrivateFile = {
@@ -15,6 +16,11 @@ export class PrivateStorageService {
 
   constructor() {
     this.root = resolve(process.env.DIGITAL_STORAGE_ROOT || join(process.cwd(), '.private-storage'));
+  }
+
+  async assertWritable(): Promise<void> {
+    await mkdir(this.root, { recursive: true, mode: 0o700 });
+    await access(this.root, constants.R_OK | constants.W_OK | constants.X_OK);
   }
 
   async saveProductFile(

@@ -242,13 +242,13 @@ function renderCategories({ items }) {
 }
 
 function renderUsers({ items }) {
-  $('#content').innerHTML = sectionHead('المستخدمون','حسابات العملاء والإدارة المسجلة في المنصة.') + table(['المستخدم','الدور','الحالة','الطلبات','المكتبة','تاريخ التسجيل'], items.map(u=>[`<strong>${esc(u.fullName)}</strong><small>${esc(u.email)}</small>`,roleLabel(u.role),badge(u.status),u._count.orders,u._count.libraryItems,formatDate(u.createdAt)]));
+  $('#content').innerHTML = sectionHead('المستخدمون','حسابات العملاء والإدارة المسجلة في المنصة.') + table(['المستخدم','الهاتف','الدور','الحالة','الطلبات','المكتبة','تاريخ التسجيل'], items.map(u=>[`<strong>${esc(u.fullName)}</strong><small>${esc(u.email)}</small>`,u.phone?`${esc(u.phone)}${u.phoneCountry?` <small>${esc(u.phoneCountry)}</small>`:''}`:'—',roleLabel(u.role),badge(u.status),u._count.orders,u._count.libraryItems,formatDate(u.createdAt)]));
 }
 function renderNewsletter({ items }) {
   $('#content').innerHTML = sectionHead('النشرة البريدية','الاشتراكات التي تصل من Footer المتجر.') + table(['البريد الإلكتروني','الحالة','المصدر','مرتبط بحساب','تاريخ الاشتراك'], items.map(n=>[esc(n.email),badge(n.status),esc(n.source),n.user?esc(n.user.fullName):'—',formatDate(n.subscribedAt)]));
 }
 function renderOrders({ items }) {
-  $('#content').innerHTML = sectionHead('الطلبات','ستظهر هنا طلبات Mock ثم XPay في مراحل الدفع القادمة.') + table(['رقم الطلب','العميل','الإجمالي','الحالة','العناصر','التاريخ'], items.map(o=>[esc(o.orderNumber),`<strong>${esc(o.user.fullName)}</strong><small>${esc(o.user.email)}</small>`,money(o.total,o.currency),badge(o.status),o._count.items,formatDate(o.createdAt)]));
+  $('#content').innerHTML = sectionHead('الطلبات','متابعة الطلبات وحالات الدفع والمحتوى الرقمي.') + table(['رقم الطلب','العميل','الإجمالي','الحالة','العناصر','التاريخ'], items.map(o=>[esc(o.orderNumber),`<strong>${esc(o.user.fullName)}</strong><small>${esc(o.user.email)}</small>`,money(o.total,o.currency),badge(o.status),o._count.items,formatDate(o.createdAt)]));
 }
 function table(headers, rows) {
   if (!rows.length) return '<div class="empty">لا توجد بيانات في هذا القسم حتى الآن.</div>';

@@ -6,7 +6,6 @@
     : 'https://api.athar-online.com/api';
 
   const data = (window.ATHR_DATA = {
-    whatsappNumber: '+9660510390125',
     apiBase,
     categories: [],
     products: [],

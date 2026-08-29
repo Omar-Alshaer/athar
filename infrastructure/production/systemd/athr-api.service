@@ -1,0 +1,36 @@
+[Unit]
+Description=ATHR NestJS API
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=athr
+Group=athr
+WorkingDirectory=/opt/athr/current/apps/api
+EnvironmentFile=/etc/athr/athr.env
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node dist/main.js
+Restart=on-failure
+RestartSec=5s
+TimeoutStartSec=45s
+TimeoutStopSec=30s
+KillSignal=SIGTERM
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+ReadWritePaths=/var/lib/athr/private
+UMask=0027
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=athr-api
+
+[Install]
+WantedBy=multi-user.target

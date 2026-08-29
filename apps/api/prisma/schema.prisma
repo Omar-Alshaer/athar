@@ -68,6 +68,7 @@ model User {
   passwordHash            String
   fullName                String
   phone                   String?
+  phoneCountry            String?
   role                    UserRole                 @default(CUSTOMER)
   status                  UserStatus               @default(ACTIVE)
   emailVerifiedAt         DateTime?
@@ -263,6 +264,7 @@ model Payment {
   amount             Decimal         @db.Decimal(10, 2)
   currency           String          @default("SAR")
   providerCheckoutId String?         @unique
+  providerCheckoutUrl String?
   providerPaymentId  String?         @unique
   failureCode        String?
   failureMessage     String?

@@ -29,14 +29,18 @@ export class AdminAuthController {
     @Req() request: Request,
     @Res({ passthrough: true }) response: Response,
   ) {
-    const rateKey = `admin-login:${this.clientKey(request)}:${dto.email
+    const clientKey = this.clientKey(request);
+    const rateKey = `admin-login:${clientKey}:${dto.email
       .trim()
       .toLowerCase()}`;
+    const ipRateKey = `admin-login-ip:${clientKey}`;
+    this.rateLimit.assertAllowed(ipRateKey);
     this.rateLimit.assertAllowed(rateKey);
 
     const result = await this.auth.login(dto);
     this.setAdminCookie(response, result.sessionToken);
     this.rateLimit.clear(rateKey);
+    this.rateLimit.clear(ipRateKey);
 
     return { user: result.user };
   }

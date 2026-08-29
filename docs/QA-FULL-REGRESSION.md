@@ -128,3 +128,4 @@ mobile width.
 - PostgreSQL backup + restore rehearsal.
 - Production secrets outside Git.
 - Disable mock payments in production.
+- Validate Saudi, Egyptian, French, and US phone normalization plus invalid-country bypass attempts.

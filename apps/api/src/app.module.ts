@@ -10,6 +10,7 @@ import { WishlistModule } from './wishlist/wishlist.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { AdminModule } from './admin/admin.module';
 import { CommerceModule } from './commerce/commerce.module';
+import { PrivateStorageModule } from './storage/private-storage.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CommerceModule } from './commerce/commerce.module';
     NewsletterModule,
     AdminModule,
     CommerceModule,
+    PrivateStorageModule,
   ],
   controllers: [HealthController],
 })

@@ -8,6 +8,10 @@
 
   if (!form || !itemsRoot) return;
 
+  if (new URLSearchParams(location.search).get('payment') === 'cancelled') {
+    errorNode.textContent = 'لم يكتمل الدفع. يمكنك مراجعة الطلب أو استكمال جلسة الدفع من صفحة حسابك.';
+  }
+
   if (window.ATHR_CATALOG_READY) await window.ATHR_CATALOG_READY;
 
   const request = async (path, options = {}) => {
@@ -35,12 +39,16 @@
   }
 
   let user = null;
+  let phoneInput = null;
   try {
     const result = await request('/auth/me');
     user = result.user;
     document.getElementById('checkout-name').value = user.fullName || '';
     document.getElementById('checkout-email').value = user.email || '';
-    document.getElementById('checkout-phone').value = user.phone || '';
+    phoneInput = window.ATHR_PHONE.create(document.getElementById('checkout-phone'), {
+      initialCountry: user.phoneCountry || 'SA',
+      initialNumber: user.phone || '',
+    });
     if (authNote) authNote.textContent = `سيتم ربط الطلب بحساب ${user.email}.`;
   } catch (error) {
     if (error.status === 401) {
@@ -85,8 +93,6 @@
   subtotalNode.textContent = money(subtotal);
   totalNode.textContent = money(subtotal);
 
-  const cleanPhone = value => String(value || '').replace(/[^\d+()\-\s]/g, '').trim();
-
   form.addEventListener('submit', async event => {
     event.preventDefault();
     errorNode.textContent = '';
@@ -97,9 +103,11 @@
       return;
     }
 
-    const phone = cleanPhone(document.getElementById('checkout-phone').value);
-    if (phone.replace(/\D/g, '').length < 8) {
-      errorNode.textContent = 'من فضلك أدخل رقم هاتف صحيحًا مع كود الدولة.';
+    let normalizedPhone;
+    try {
+      normalizedPhone = phoneInput.value();
+    } catch (error) {
+      errorNode.textContent = error.message;
       return;
     }
 
@@ -111,7 +119,7 @@
       const result = await request('/commerce/checkout/session', {
         method: 'POST',
         body: JSON.stringify({
-          phone,
+          ...normalizedPhone,
           items: rows.map(({ product }) => ({ slug: product.id, quantity: 1 })),
         }),
       });

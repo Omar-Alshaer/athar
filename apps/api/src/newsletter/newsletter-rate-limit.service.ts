@@ -10,6 +10,11 @@ export class NewsletterRateLimitService {
 
   assertAllowed(key: string): void {
     const now = Date.now();
+    if (this.buckets.size > 10_000) {
+      for (const [bucketKey, bucket] of this.buckets) {
+        if (bucket.resetAt <= now) this.buckets.delete(bucketKey);
+      }
+    }
     const existing = this.buckets.get(key);
 
     if (!existing || existing.resetAt <= now) {

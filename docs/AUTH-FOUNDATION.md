@@ -25,7 +25,7 @@
 - `auth.html` provides login and registration.
 - `account.html` is the customer account foundation.
 - The navbar account icon now opens the real account flow.
-- My Library and Orders are intentionally placeholders until the orders/payment/library patches.
+- My Library and Orders are backed by authenticated commerce and private-download APIs.
 
 ## Production secret
 

@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
   ServiceUnavailableException,
@@ -16,6 +17,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { PrivateStorageService } from '../storage/private-storage.service';
 import { AuthenticatedUser } from '../auth/session.service';
+import { normalizeInternationalPhone } from '../auth/phone.util';
 import { CreateCheckoutSessionDto } from './dto/create-checkout-session.dto';
 import {
   XPayCheckoutSession,
@@ -33,6 +35,7 @@ export class CommerceService {
 
   async createCheckoutSession(user: AuthenticatedUser, dto: CreateCheckoutSessionDto) {
     const items = this.normalizeItems(dto.items);
+    const normalizedPhone = normalizeInternationalPhone(dto.phone, dto.phoneCountry);
     const slugs = items.map((item) => item.slug);
 
     const products = await this.prisma.product.findMany({
@@ -75,16 +78,59 @@ export class CommerceService {
     if (totalCents <= 0) throw new BadRequestException('قيمة الطلب غير صالحة.');
 
     const currency = products[0].currency;
+    if (currency.trim().toUpperCase() !== 'SAR') {
+      throw new BadRequestException('الدفع متاح حاليًا للمنتجات المسعرة بالريال السعودي فقط.');
+    }
     const provider = this.paymentProvider();
 
     const orderNumber = this.generateOrderNumber();
     const total = this.centsToMoney(totalCents);
 
     const order = await this.prisma.$transaction(async (tx) => {
-      if (dto.phone.trim() !== (user.phone ?? '').trim()) {
+      await tx.$queryRaw`
+        SELECT TRUE AS locked
+        FROM (SELECT pg_advisory_xact_lock(hashtext(${`athr-checkout:${user.id}`}))) AS checkout_lock
+      `;
+
+      const alreadyOwned = await tx.libraryItem.findFirst({
+        where: {
+          userId: user.id,
+          revokedAt: null,
+          productId: { in: products.map((product) => product.id) },
+        },
+        select: { product: { select: { titleAr: true } } },
+      });
+
+      if (alreadyOwned) {
+        throw new ConflictException(
+          `المنتج «${alreadyOwned.product.titleAr}» موجود بالفعل في مكتبتك.`,
+        );
+      }
+
+      const pendingPurchase = await tx.orderItem.findFirst({
+        where: {
+          productId: { in: products.map((product) => product.id) },
+          order: {
+            userId: user.id,
+            status: OrderStatus.PENDING_PAYMENT,
+          },
+        },
+        select: { productTitleSnapshot: true },
+      });
+
+      if (pendingPurchase) {
+        throw new ConflictException(
+          `يوجد طلب قيد الدفع للمنتج «${pendingPurchase.productTitleSnapshot}». استكمله من حسابك قبل إنشاء طلب جديد.`,
+        );
+      }
+
+      if (
+        normalizedPhone.phone !== user.phone ||
+        normalizedPhone.phoneCountry !== user.phoneCountry
+      ) {
         await tx.user.update({
           where: { id: user.id },
-          data: { phone: dto.phone.trim() },
+          data: normalizedPhone,
         });
       }
 
@@ -114,6 +160,10 @@ export class CommerceService {
               providerCheckoutId:
                 provider === PaymentProvider.MOCK
                   ? `mock_${orderNumber}`
+                  : null,
+              providerCheckoutUrl:
+                provider === PaymentProvider.MOCK
+                  ? `payment-mock.html?order=${encodeURIComponent(orderNumber)}`
                   : null,
             },
           },
@@ -146,7 +196,7 @@ export class CommerceService {
           id: user.id,
           fullName: user.fullName,
           email: user.email,
-          phone: dto.phone.trim(),
+          phone: normalizedPhone.phone,
         },
         lines: lines.map((line) => ({
           name: line.product.titleAr,
@@ -162,6 +212,7 @@ export class CommerceService {
         where: { id: payment.id },
         data: {
           providerCheckoutId: session.id,
+          providerCheckoutUrl: session.url,
         },
       });
 
@@ -529,6 +580,13 @@ export class CommerceService {
       return;
     }
 
+    if (
+      payment.status === PaymentStatus.REFUNDED ||
+      payment.order.status === OrderStatus.REFUNDED
+    ) {
+      return;
+    }
+
     const paidAt = new Date();
 
     const providerPaymentId =
@@ -597,7 +655,9 @@ export class CommerceService {
 
     if (
       payment.status === PaymentStatus.SUCCEEDED ||
-      payment.order.status === OrderStatus.PAID
+      payment.order.status === OrderStatus.PAID ||
+      payment.status === PaymentStatus.REFUNDED ||
+      payment.order.status === OrderStatus.REFUNDED
     ) {
       return;
     }
@@ -607,6 +667,7 @@ export class CommerceService {
         where: { id: payment.id },
         data: {
           status: PaymentStatus.FAILED,
+          providerCheckoutId: session.id,
           failureCode: 'xpay_async_payment_failed',
           failureMessage:
             'XPay reported that the payment failed.',
@@ -635,7 +696,9 @@ export class CommerceService {
 
     if (
       payment.status === PaymentStatus.SUCCEEDED ||
-      payment.order.status === OrderStatus.PAID
+      payment.order.status === OrderStatus.PAID ||
+      payment.status === PaymentStatus.REFUNDED ||
+      payment.order.status === OrderStatus.REFUNDED
     ) {
       return;
     }
@@ -645,6 +708,7 @@ export class CommerceService {
         where: { id: payment.id },
         data: {
           status: PaymentStatus.CANCELLED,
+          providerCheckoutId: session.id,
           failureCode: 'xpay_session_expired',
           failureMessage:
             'XPay checkout session expired before payment.',
@@ -720,17 +784,6 @@ export class CommerceService {
         throw new BadRequestException(
           'XPay session does not match the stored payment.',
         );
-      }
-
-      if (!candidate.providerCheckoutId) {
-        await this.prisma.payment.update({
-          where: {
-            id: candidate.id,
-          },
-          data: {
-            providerCheckoutId: session.id,
-          },
-        });
       }
 
       paymentId = candidate.id;
@@ -850,7 +903,7 @@ export class CommerceService {
       if (
         typeof finalAmount !== 'number' ||
         !Number.isInteger(finalAmount) ||
-        Math.abs(finalAmount - expectedCents) > 1
+        finalAmount !== expectedCents
       ) {
         throw new BadRequestException(
           'XPay payment amount mismatch.',
@@ -909,8 +962,16 @@ export class CommerceService {
   }
 
   private paymentProvider(): PaymentProvider {
-    const provider = String(process.env.PAYMENT_PROVIDER ?? 'mock').trim().toLowerCase();
-    return provider === 'xpay' ? PaymentProvider.XPAY : PaymentProvider.MOCK;
+    const provider = String(process.env.PAYMENT_PROVIDER ?? '').trim().toLowerCase();
+    if (provider === 'xpay') return PaymentProvider.XPAY;
+    if (
+      provider === 'mock' &&
+      process.env.NODE_ENV !== 'production' &&
+      String(process.env.MOCK_PAYMENT_ENABLED).trim().toLowerCase() === 'true'
+    ) {
+      return PaymentProvider.MOCK;
+    }
+    throw new ServiceUnavailableException('إعداد بوابة الدفع غير صالح.');
   }
 
   private assertMockPaymentsEnabled(): void {
@@ -918,7 +979,7 @@ export class CommerceService {
       throw new BadRequestException('الدفع التجريبي غير متاح مع بوابة الدفع الحالية.');
     }
 
-    if (process.env.NODE_ENV === 'production' && process.env.MOCK_PAYMENT_ENABLED !== 'true') {
+    if (process.env.NODE_ENV === 'production') {
       throw new BadRequestException('الدفع التجريبي معطل في بيئة الإنتاج.');
     }
   }
@@ -963,6 +1024,7 @@ export class CommerceService {
       status: PaymentStatus;
       amount: unknown;
       currency: string;
+      providerCheckoutUrl: string | null;
       paidAt: Date | null;
       createdAt: Date;
     }>;
@@ -987,10 +1049,10 @@ export class CommerceService {
       })),
       payments: order.payments.map((payment) => ({
         id: payment.id,
-        provider: payment.provider,
         status: payment.status,
         amount: Number(payment.amount),
         currency: payment.currency,
+        checkoutUrl: payment.providerCheckoutUrl,
         paidAt: payment.paidAt,
         createdAt: payment.createdAt,
       })),

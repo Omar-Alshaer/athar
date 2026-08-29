@@ -33,6 +33,10 @@ export class CreateCheckoutSessionDto {
   items!: CheckoutItemDto[];
 
   @IsString()
-  @Matches(/^[+()\-\s\d]{8,24}$/)
+  @MaxLength(32)
   phone!: string;
+
+  @IsString()
+  @Matches(/^[A-Za-z]{2}$/)
+  phoneCountry!: string;
 }

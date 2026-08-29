@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsEnum,
+  Equals,
   IsNumber,
   IsOptional,
   IsString,
@@ -15,7 +16,6 @@ import {
 import { ProductStatus } from '../../generated/prisma/client';
 
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const currencyPattern = /^[A-Z]{3}$/;
 
 export class CreateProductDto {
   @IsString()
@@ -47,7 +47,7 @@ export class CreateProductDto {
 
   @IsOptional()
   @IsString()
-  @Matches(currencyPattern)
+  @Equals('SAR')
   currency?: string;
 
   @IsOptional()
@@ -109,7 +109,7 @@ export class UpdateProductDto {
 
   @IsOptional()
   @IsString()
-  @Matches(currencyPattern)
+  @Equals('SAR')
   currency?: string;
 
   @IsOptional()

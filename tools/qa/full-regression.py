@@ -228,15 +228,24 @@ def start_local_service(
     *,
     port: int,
     log_path: str,
+    env_overrides: dict[str, str] | None = None,
+    allow_reuse: bool = True,
 ) -> subprocess.Popen[bytes] | None:
     if port_is_open("127.0.0.1", port):
+        if not allow_reuse:
+            raise TestFailure(
+                f"{label} requires a free port {port}; stop the existing service first."
+            )
         ok(f"{label} already running on {port}")
         return None
 
     log_file = open(log_path, "ab", buffering=0)
+    process_env = os.environ.copy()
+    process_env.update(env_overrides or {})
     process = subprocess.Popen(
         command,
         cwd=ROOT,
+        env=process_env,
         stdout=log_file,
         stderr=subprocess.STDOUT,
         start_new_session=True,
@@ -310,6 +319,13 @@ def ensure_local_stack() -> dict[str, subprocess.Popen[bytes] | None]:
         ["node", "apps/api/dist/main.js"],
         port=4000,
         log_path="/tmp/athr-qa-api.log",
+        env_overrides={
+            "NODE_ENV": "development",
+            "PAYMENT_PROVIDER": "mock",
+            "MOCK_PAYMENT_ENABLED": "true",
+            "API_BIND_HOST": "127.0.0.1",
+        },
+        allow_reuse=False,
     )
     started["admin"] = start_local_service(
         "Local Admin",
@@ -522,7 +538,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    print("ATHR FULL REGRESSION — pre-XPay gate")
+    print("ATHR FULL REGRESSION — production-hardening local gate")
     print("=" * 68)
     print("Uses MOCK payment and temporary QA-only records.")
     print("LOCAL ONLY: no production server/domain deployment is touched.")
@@ -541,6 +557,10 @@ def main() -> int:
     try:
         if not args.skip_build:
             run_cmd("Prisma generate", ["npm", "run", "prisma:generate"])
+            run_cmd("Phone normalization tests", ["npm", "run", "test:phone"])
+            run_cmd("Production configuration tests", ["npm", "run", "test:production-config"])
+            run_cmd("Payment invariant tests", ["npm", "run", "test:payment"])
+            run_cmd("Prisma migrate deploy", ["npm", "run", "prisma:migrate:deploy"])
             run_cmd("TypeScript typecheck", ["npm", "run", "typecheck"])
             run_cmd("Nest production build", ["npm", "run", "build:api"])
 
@@ -632,6 +652,13 @@ def main() -> int:
     except TestFailure as exc:
         fail("Preflight / live stack", str(exc))
         print("\nPreflight failed. Local stack could not become ready.")
+        cleanup(
+            None,
+            qa_email=None,
+            qa_admin_email=qa_admin_email,
+            product_id=None,
+            category_id=None,
+        )
         for label, process in reversed(list(started_services.items())):
             stop_local_service(label, process)
         print(f"\nPASS={PASSED}  FAIL={FAILED}  SKIP={SKIPPED}")
@@ -793,13 +820,31 @@ def main() -> int:
         )
 
         customer = Client()
+        invalid_phone = customer.request(
+            "POST",
+            f"{API}/auth/register",
+            json_body={
+                "fullName": "ATHR Invalid Phone",
+                "email": f"invalid.{qa_email}",
+                "phone": "+33612345678",
+                "phoneCountry": "US",
+                "password": qa_password,
+            },
+            allow_error=True,
+        )
+        expect(
+            invalid_phone.status == 400,
+            "Backend rejects country/number mismatch",
+        )
+
         reg = customer.request(
             "POST",
             f"{API}/auth/register",
             json_body={
                 "fullName": "ATHR QA Customer",
                 "email": qa_email,
-                "phone": "+201000000000",
+                "phone": "01012345678",
+                "phoneCountry": "EG",
                 "password": qa_password,
             },
         ).json()
@@ -812,6 +857,11 @@ def main() -> int:
         expect(
             customer_me.get("user", {}).get("email") == qa_email,
             "Customer session persists",
+        )
+        expect(
+            customer_me.get("user", {}).get("phone") == "+201012345678"
+            and customer_me.get("user", {}).get("phoneCountry") == "EG",
+            "Customer phone is stored in canonical E.164 format",
         )
 
         wish_add = customer.request(
@@ -862,7 +912,8 @@ def main() -> int:
                         "quantity": 2,
                     }
                 ],
-                "phone": "+201000000000",
+                "phone": "01012345678",
+                "phoneCountry": "EG",
             },
             allow_error=True,
         )
@@ -885,13 +936,30 @@ def main() -> int:
                         "quantity": 1,
                     },
                 ],
-                "phone": "+201000000000",
+                "phone": "01012345678",
+                "phoneCountry": "EG",
             },
             allow_error=True,
         )
         expect(
             duplicate_rejected.status == 400,
             "Checkout rejects duplicate digital product",
+        )
+
+        tampered_price = customer.request(
+            "POST",
+            f"{API}/commerce/checkout/session",
+            json_body={
+                "items": [{"slug": product_slug, "quantity": 1}],
+                "phone": "01012345678",
+                "phoneCountry": "EG",
+                "price": 0.01,
+            },
+            allow_error=True,
+        )
+        expect(
+            tampered_price.status == 400,
+            "Checkout rejects client-supplied price",
         )
 
         checkout = customer.request(
@@ -904,7 +972,8 @@ def main() -> int:
                         "quantity": 1,
                     }
                 ],
-                "phone": "+201000000000",
+                "phone": "01012345678",
+                "phoneCountry": "EG",
             },
         ).json()
 
@@ -918,6 +987,21 @@ def main() -> int:
             "Local payment provider is MOCK",
         )
 
+        pending_duplicate = customer.request(
+            "POST",
+            f"{API}/commerce/checkout/session",
+            json_body={
+                "items": [{"slug": product_slug, "quantity": 1}],
+                "phone": "01012345678",
+                "phoneCountry": "EG",
+            },
+            allow_error=True,
+        )
+        expect(
+            pending_duplicate.status == 409,
+            "Pending product checkout cannot be duplicated",
+        )
+
         paid = customer.request(
             "POST",
             (
@@ -928,6 +1012,18 @@ def main() -> int:
         expect(
             paid.get("order", {}).get("status") == "PAID",
             "Mock payment marks order paid",
+        )
+
+        paid_again = customer.request(
+            "POST",
+            (
+                f"{API}/commerce/payments/mock/"
+                f"{urllib.parse.quote(order['orderNumber'])}/succeed"
+            ),
+        ).json()
+        expect(
+            paid_again.get("alreadyPaid") is True,
+            "Duplicate payment completion is idempotent",
         )
 
         orders = get_json(customer, f"{API}/commerce/orders")
@@ -956,6 +1052,21 @@ def main() -> int:
         expect(
             library_row["product"].get("digitalFileReady") is True,
             "Library knows digital file is ready",
+        )
+
+        owned_duplicate = customer.request(
+            "POST",
+            f"{API}/commerce/checkout/session",
+            json_body={
+                "items": [{"slug": product_slug, "quantity": 1}],
+                "phone": "01012345678",
+                "phoneCountry": "EG",
+            },
+            allow_error=True,
+        )
+        expect(
+            owned_duplicate.status == 409,
+            "Owned digital product cannot be charged twice",
         )
 
         library_id = library_row["id"]
@@ -1012,6 +1123,22 @@ def main() -> int:
         expect(
             bool(match and int(match.group(1)) >= 1),
             "Download audit log written",
+        )
+
+        psql(
+            f'UPDATE "LibraryItem" SET "revokedAt"=NOW() WHERE id={sql_quote(library_id)};'
+        )
+        revoked_download = customer.request(
+            "GET",
+            f"{API}/commerce/library/{library_id}/download",
+            allow_error=True,
+        )
+        expect(
+            revoked_download.status == 404,
+            "Revoked library access cannot download",
+        )
+        psql(
+            f'UPDATE "LibraryItem" SET "revokedAt"=NULL WHERE id={sql_quote(library_id)};'
         )
 
         dash = get_json(admin, f"{API}/admin/dashboard")

@@ -9,9 +9,14 @@
     "typecheck": "npm run prisma:generate && tsc --noEmit",
     "prisma:generate": "prisma generate --config=./prisma.config.ts",
     "prisma:migrate:dev": "prisma migrate dev --config=./prisma.config.ts",
+    "prisma:migrate:deploy": "prisma migrate deploy --config=./prisma.config.ts",
+    "prisma:migrate:status": "prisma migrate status --config=./prisma.config.ts",
     "prisma:seed": "tsx prisma/seed.ts",
     "prisma:studio": "prisma studio --config=./prisma.config.ts",
-    "admin:bootstrap": "npm run prisma:generate && tsx scripts/bootstrap-admin.ts"
+    "admin:bootstrap": "npm run prisma:generate && tsx scripts/bootstrap-admin.ts",
+    "test:phone": "tsx --test src/auth/phone.util.spec.ts",
+    "test:production-config": "tsx --test src/config/environment.validation.spec.ts",
+    "test:payment": "tsx --test src/commerce/*.spec.ts"
   },
   "dependencies": {
     "@nestjs/common": "11.2.3",
@@ -26,12 +31,13 @@
     "cookie-parser": "1.4.7",
     "dotenv": "17.4.2",
     "helmet": "8.1.0",
+    "libphonenumber-js": "1.13.12",
     "pg": "8.16.3",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2"
   },
   "devDependencies": {
-    "@nestjs/cli": "11.0.10",
+    "@nestjs/cli": "11.0.24",
     "@types/cookie-parser": "1.4.9",
     "@types/node": "24.3.0",
     "prisma": "7.9.1",

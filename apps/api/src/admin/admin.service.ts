@@ -189,6 +189,7 @@ export class AdminService {
         fullName: true,
         email: true,
         phone: true,
+        phoneCountry: true,
         role: true,
         status: true,
         emailVerifiedAt: true,
@@ -681,6 +682,9 @@ export class AdminService {
     if (file.size > this.maxImageBytes) {
       throw new BadRequestException('حجم الصورة يجب ألا يتجاوز 8MB.');
     }
+    if (!this.hasValidImageSignature(file)) {
+      throw new BadRequestException('محتوى الصورة لا يطابق نوع الملف المسموح.');
+    }
     return file;
   }
 
@@ -695,13 +699,40 @@ export class AdminService {
 
   private digitalFileExtension(file: UploadedDigitalFile): '.pdf' | '.epub' {
     const lowerName = file.originalname.toLowerCase();
-    if (lowerName.endsWith('.pdf') && ['application/pdf', 'application/octet-stream'].includes(file.mimetype)) {
+    if (
+      lowerName.endsWith('.pdf') &&
+      ['application/pdf', 'application/octet-stream'].includes(file.mimetype) &&
+      file.buffer.subarray(0, 5).toString('ascii') === '%PDF-'
+    ) {
       return '.pdf';
     }
-    if (lowerName.endsWith('.epub') && ['application/epub+zip', 'application/octet-stream'].includes(file.mimetype)) {
+    if (
+      lowerName.endsWith('.epub') &&
+      ['application/epub+zip', 'application/octet-stream'].includes(file.mimetype) &&
+      file.buffer.subarray(0, 4).equals(Buffer.from([0x50, 0x4b, 0x03, 0x04])) &&
+      file.buffer.subarray(0, Math.min(file.buffer.length, 256)).includes(Buffer.from('application/epub+zip'))
+    ) {
       return '.epub';
     }
     throw new BadRequestException('ملفات الكتب المسموحة حاليًا: PDF أو EPUB فقط.');
+  }
+
+  private hasValidImageSignature(file: UploadedImageFile): boolean {
+    const bytes = file.buffer;
+    if (file.mimetype === 'image/jpeg') {
+      return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+    }
+    if (file.mimetype === 'image/png') {
+      return bytes.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]));
+    }
+    if (file.mimetype === 'image/webp') {
+      return bytes.subarray(0, 4).toString('ascii') === 'RIFF' && bytes.subarray(8, 12).toString('ascii') === 'WEBP';
+    }
+    if (file.mimetype === 'image/avif') {
+      const brand = bytes.subarray(8, 12).toString('ascii');
+      return bytes.subarray(4, 8).toString('ascii') === 'ftyp' && ['avif', 'avis'].includes(brand);
+    }
+    return false;
   }
 
   private safeOriginalFileName(name: string, extension: '.pdf' | '.epub'): string {

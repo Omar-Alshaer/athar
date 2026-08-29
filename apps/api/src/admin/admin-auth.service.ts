@@ -20,9 +20,7 @@ export class AdminAuthService {
     const email = dto.email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({ where: { email } });
 
-    const validPassword = user
-      ? await this.passwords.verify(dto.password, user.passwordHash)
-      : false;
+    const validPassword = await this.passwords.verify(dto.password, user?.passwordHash);
 
     if (
       !user ||

@@ -1,11 +1,14 @@
 import 'reflect-metadata';
+import 'dotenv/config';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import cookieParser from 'cookie-parser';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
+import { validateRuntimeEnvironment } from './config/environment.validation';
 
 async function bootstrap(): Promise<void> {
+  validateRuntimeEnvironment();
   const app = await NestFactory.create(AppModule, {
     cors: false,
     // Required for verifying XPay webhook signatures against the exact request bytes.
@@ -46,7 +49,12 @@ async function bootstrap(): Promise<void> {
     },
   });
 
-  app.use(helmet());
+  app.use(helmet({
+    referrerPolicy: { policy: 'no-referrer' },
+    strictTransportSecurity: process.env.NODE_ENV === 'production'
+      ? { maxAge: 31_536_000, includeSubDomains: true }
+      : false,
+  }));
   app.use(cookieParser());
   app.useGlobalPipes(
     new ValidationPipe({
@@ -59,7 +67,8 @@ async function bootstrap(): Promise<void> {
   app.enableShutdownHooks();
 
   const port = Number(process.env.PORT ?? 4000);
-  await app.listen(port, '0.0.0.0');
+  const bindHost = process.env.API_BIND_HOST || '127.0.0.1';
+  await app.listen(port, bindHost);
 }
 
 void bootstrap();

@@ -7,6 +7,7 @@
   <meta name="description" content="سجل دخولك إلى حساب أثر أو أنشئ حسابًا جديدًا للوصول إلى مشترياتك الرقمية.">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="auth.css?v=29">
+  <link rel="stylesheet" href="assets/vendor/intl-tel-input/css/intlTelInput.min.css">
   <link rel="stylesheet" href="nav-direct-fixed.css?v=25">
   <link rel="icon" href="assets/athr-logo.png">
 </head>
@@ -45,29 +46,30 @@
               <input type="password" name="password" autocomplete="current-password" placeholder="أدخل كلمة المرور" minlength="8" required>
             </label>
             <button class="primary-btn full" type="submit">دخول إلى حسابي</button>
-            <p class="auth-hint">ميزة استعادة كلمة المرور ستضاف في باتش الأمان التالي.</p>
+            <p class="auth-hint">لا تشارك كلمة المرور أو رمز جلسة حسابك مع أي شخص.</p>
           </form>
 
           <form id="register-form" class="auth-form">
             <label>
               <span>الاسم الكامل</span>
-              <input type="text" name="fullName" autocomplete="name" placeholder="أدخل الاسم الكامل" minlength="2" required>
+              <input type="text" name="fullName" autocomplete="name" placeholder="أدخل الاسم الكامل" minlength="2" maxlength="100" required>
             </label>
             <label>
               <span>البريد الإلكتروني</span>
-              <input type="email" name="email" autocomplete="email" placeholder="أدخل البريد الإلكتروني" required>
+              <input type="email" name="email" autocomplete="email" placeholder="أدخل البريد الإلكتروني" maxlength="180" required>
             </label>
             <label>
-              <span>رقم الهاتف <small>اختياري</small></span>
-              <input type="tel" name="phone" autocomplete="tel" inputmode="tel" placeholder="مثال: +20 10 1234 5678">
+              <span>رقم الهاتف الدولي</span>
+              <input id="register-phone" type="tel" name="phone" autocomplete="tel" inputmode="tel" required>
+              <small class="phone-field-help">اختر أي دولة ثم أدخل الرقم بصيغته المحلية؛ سنحفظه دوليًا بصورة آمنة.</small>
             </label>
             <label>
               <span>كلمة المرور</span>
-              <input type="password" name="password" autocomplete="new-password" placeholder="8 أحرف على الأقل" minlength="8" required>
+              <input type="password" name="password" autocomplete="new-password" placeholder="10 أحرف، تتضمن حرفًا ورقمًا" minlength="10" maxlength="72" required>
             </label>
             <label>
               <span>تأكيد كلمة المرور</span>
-              <input type="password" name="passwordConfirm" autocomplete="new-password" placeholder="أعد كتابة كلمة المرور" minlength="8" required>
+              <input type="password" name="passwordConfirm" autocomplete="new-password" placeholder="أعد كتابة كلمة المرور" minlength="10" maxlength="72" required>
             </label>
             <button class="primary-btn full" type="submit">إنشاء حساب أثر</button>
           </form>
@@ -80,7 +82,9 @@
 
   <script src="data.js"></script>
   <script src="app.js"></script>
-  <script src="auth.js?v=29"></script>
+  <script src="assets/vendor/intl-tel-input/js/intlTelInputWithUtils.min.js"></script>
+  <script src="phone-input.js?v=2"></script>
+  <script src="auth.js?v=35"></script>
   <script src="nav-direct-fixed.js?v=25"></script>
 </body>
 </html>

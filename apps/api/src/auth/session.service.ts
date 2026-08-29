@@ -8,6 +8,7 @@ export type AuthenticatedUser = {
   email: string;
   fullName: string;
   phone: string | null;
+  phoneCountry: string | null;
   role: 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN';
   status: 'ACTIVE' | 'SUSPENDED';
   emailVerifiedAt: Date | null;
@@ -96,6 +97,7 @@ export class SessionService {
     email: string;
     fullName: string;
     phone: string | null;
+    phoneCountry: string | null;
     role: 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN';
     status: 'ACTIVE' | 'SUSPENDED';
     emailVerifiedAt: Date | null;
@@ -106,6 +108,7 @@ export class SessionService {
       email: user.email,
       fullName: user.fullName,
       phone: user.phone,
+      phoneCountry: user.phoneCountry,
       role: user.role,
       status: user.status,
       emailVerifiedAt: user.emailVerifiedAt,

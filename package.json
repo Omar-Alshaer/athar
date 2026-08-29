@@ -2,22 +2,38 @@
   "name": "athr-platform",
   "version": "0.2.0",
   "private": true,
-  "description": "ATHR digital products platform — storefront migration foundation",
+  "description": "ATHR secure digital-products storefront, API, admin, and delivery platform",
   "workspaces": [
     "apps/*"
   ],
   "scripts": {
     "dev:api": "npm run dev -w @athr/api",
     "build:api": "npm run build -w @athr/api",
+    "build:web": "node tools/build-static.mjs",
     "typecheck": "npm run typecheck -w @athr/api",
     "prisma:generate": "npm run prisma:generate -w @athr/api",
     "prisma:migrate:dev": "npm run prisma:migrate:dev -w @athr/api",
+    "prisma:migrate:deploy": "npm run prisma:migrate:deploy -w @athr/api",
+    "prisma:migrate:status": "npm run prisma:migrate:status -w @athr/api",
     "prisma:seed": "npm run prisma:seed -w @athr/api",
     "prisma:studio": "npm run prisma:studio -w @athr/api",
     "dev:admin": "npm run dev -w @athr/admin",
-    "admin:bootstrap": "npm run admin:bootstrap -w @athr/api"
+    "admin:bootstrap": "npm run admin:bootstrap -w @athr/api",
+    "test:phone": "npm run test:phone -w @athr/api",
+    "test:production-config": "npm run test:production-config -w @athr/api",
+    "test:payment": "npm run test:payment -w @athr/api",
+    "qa:full": "python3 tools/qa/full-regression.py",
+    "production:preflight": "node infrastructure/scripts/production-preflight.mjs"
   },
   "engines": {
     "node": ">=22.0.0"
+  },
+  "devDependencies": {
+    "intl-tel-input": "29.2.3"
+  },
+  "allowScripts": {
+    "@prisma/engines@7.9.1": true,
+    "esbuild@0.25.12": true,
+    "prisma@7.9.1": true
   }
 }

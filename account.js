@@ -2,6 +2,18 @@
   const apiBase = window.ATHR_DATA?.apiBase || 'http://localhost:4000/api';
   const title = document.getElementById('account-title');
   if (!title) return;
+  const returnedFromPayment = new URLSearchParams(location.search).get('payment') === 'return';
+
+  function paymentMessage(text, type = 'pending') {
+    let node = document.getElementById('account-payment-message');
+    if (!node) {
+      node = document.createElement('div');
+      node.id = 'account-payment-message';
+      title.parentElement.appendChild(node);
+    }
+    node.className = `account-payment-message ${type}`;
+    node.textContent = text;
+  }
 
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch]));
   const money = (value, currency = 'SAR') => {
@@ -108,7 +120,11 @@
     }
 
     root.className = 'orders-list';
-    root.innerHTML = items.map(order => `
+    root.innerHTML = items.map(order => {
+      const pendingPayment = (order.payments || []).find(payment => payment.status === 'PENDING');
+      const checkoutUrl = String(pendingPayment?.checkoutUrl || '');
+      const canResume = checkoutUrl.startsWith('https://') || checkoutUrl.startsWith('payment-mock.html?');
+      return `
       <article class="order-card">
         <div class="order-card-top">
           <div><strong>${escapeHtml(order.orderNumber)}</strong><small>${new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(order.createdAt))}</small></div>
@@ -118,9 +134,9 @@
           ${order.items.map(item => `<div class="order-line"><span>${escapeHtml(item.title)} × ${item.quantity}</span><b>${money(item.lineTotal, order.currency)}</b></div>`).join('')}
         </div>
         <div class="order-total"><span>الإجمالي</span><b>${money(order.total, order.currency)}</b></div>
-        ${order.status === 'PENDING_PAYMENT' ? `<div class="library-actions"><a class="primary-btn" href="payment-mock.html?order=${encodeURIComponent(order.orderNumber)}">استكمال الدفع</a></div>` : ''}
+        ${order.status === 'PENDING_PAYMENT' && canResume ? `<div class="library-actions"><a class="primary-btn" href="${escapeHtml(checkoutUrl)}">استكمال الدفع</a></div>` : ''}
       </article>
-    `).join('');
+    `;}).join('');
   }
 
   async function load() {
@@ -133,6 +149,11 @@
       renderUser(user);
       renderLibrary(library.items || []);
       renderOrders(orders.items || []);
+      const ownedSlugs = new Set((library.items || []).map(item => item.product?.slug).filter(Boolean));
+      if (ownedSlugs.size && typeof getCart === 'function' && typeof saveCart === 'function') {
+        saveCart(getCart().filter(item => !ownedSlugs.has(item.id)));
+      }
+      return { library, orders };
     } catch (error) {
       if (error.status === 401) {
         location.replace(`auth.html?next=${encodeURIComponent('account.html')}`);
@@ -162,5 +183,25 @@
     }
   });
 
-  load();
+  (async () => {
+    let result = await load();
+    if (!returnedFromPayment || !result) return;
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const newest = result.orders?.items?.[0];
+      if (newest?.status === 'PAID') {
+        paymentMessage('تم تأكيد الدفع، وأضيفت مشترياتك إلى مكتبتك.', 'success');
+        return;
+      }
+      if (['PAYMENT_FAILED', 'CANCELLED'].includes(newest?.status)) {
+        paymentMessage('لم يكتمل الدفع. راجع حالة الطلب أو حاول مرة أخرى من المتجر.', 'error');
+        return;
+      }
+
+      paymentMessage('عاد المتصفح من بوابة الدفع، وما زلنا ننتظر التأكيد الآمن منها.', 'pending');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      result = await load();
+      if (!result) return;
+    }
+  })();
 })();

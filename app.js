@@ -366,61 +366,6 @@ function renderCart(){
 }
 
 
-function normalizeWhatsAppNumber(number){
-  const digits=String(number||'').replace(/\D/g,'');
-  // WhatsApp requires the international number without +.
-  // If a domestic zero was written after +966, remove it for the wa.me link.
-  return digits.startsWith('9660') ? `966${digits.slice(4)}` : digits;
-}
-
-function isValidRegionalPhone(value){
-  const digits=String(value||'').replace(/\D/g,'');
-  // Accept common Middle East/MENA phone formats, with spaces/dashes/parentheses allowed.
-  // 8–15 digits keeps the field flexible for different country codes and local formats.
-  return digits.length>=8 && digits.length<=15;
-}
-
-function openCheckout(total){
-  let modal=$('#checkout-modal'); if(!modal){ modal=document.createElement('div'); modal.id='checkout-modal'; modal.className='modal'; document.body.appendChild(modal); }
-  modal.innerHTML=`<div class="modal-card"><button class="modal-close" aria-label="إغلاق">×</button><span class="modal-kicker">خطوة أخيرة</span><h2>إتمام الطلب عبر واتساب</h2><p>أدخل بياناتك ثم اضغط إرسال الطلب. سيتم فتح واتساب مباشرة لإكمال الطلب مع فريق أثر.</p><form id="checkout-form"><label>الاسم الكامل<input required name="name" autocomplete="name" placeholder="أدخل الاسم الكامل"></label><label>البريد الإلكتروني<input required type="email" name="email" autocomplete="email" placeholder="أدخل البريد الإلكتروني"></label><label>رقم الهاتف<input required type="tel" inputmode="tel" autocomplete="tel" name="phone" placeholder="أدخل رقم الهاتف"><small class="phone-help">نقبل أرقام دول الشرق الأوسط بصيغتها المحلية أو الدولية.</small></label><div class="checkout-total"><span>الإجمالي</span><b>${money(total)}</b></div><button class="primary-btn full">إكمال الطلب عبر واتساب</button><small>لن يتم الدفع داخل الموقع حاليًا؛ يتم تأكيد تفاصيل الطلب والدفع عبر واتساب.</small></form></div>`; modal.classList.add('open');
-  $('.modal-close',modal).onclick=()=>modal.classList.remove('open');
-  $('#checkout-form',modal).onsubmit=(e)=>{
-    e.preventDefault();
-    const form=new FormData(e.currentTarget);
-    const name=String(form.get('name')||'').trim();
-    const email=String(form.get('email')||'').trim();
-    const phone=String(form.get('phone')||'').trim();
-    if(!isValidRegionalPhone(phone)){
-      toast('من فضلك أدخل رقم هاتف صحيح');
-      e.currentTarget.elements.phone.focus();
-      return;
-    }
-
-    const cart=getCart();
-    const lines=cart.map(row=>{
-      const p=DATA.products.find(item=>item.id===row.id);
-      return p ? `• ${p.title} — ${money(p.price)}` : '';
-    }).filter(Boolean);
-    const message=[
-      'مرحبًا أثر، أريد إكمال هذا الطلب:',
-      '',
-      `الاسم: ${name}`,
-      `رقم العميل: ${phone}`,
-      `البريد: ${email}`,
-      '',
-      'المنتجات:',
-      ...lines,
-      '',
-      `الإجمالي: ${money(total)}`,
-      '',
-      'أرغب في إكمال تفاصيل الطلب والدفع عبر واتساب.'
-    ].join('\n');
-
-    const target=normalizeWhatsAppNumber(DATA.whatsappNumber);
-    window.open(`https://wa.me/${target}?text=${encodeURIComponent(message)}`,'_blank','noopener');
-  };
-}
-
 document.addEventListener('DOMContentLoaded',async()=>{
   initGlobal();
   if(window.ATHR_CATALOG_READY) await window.ATHR_CATALOG_READY;
@@ -431,5 +376,6 @@ document.addEventListener('DOMContentLoaded',async()=>{
   renderCart();
   renderWishlistPage();
   updateWishlistUI();
+  document.querySelectorAll('[data-icon]').forEach(el=>{ el.innerHTML=icon(el.dataset.icon); });
   if(DATA.catalogError) toast('تعذر الاتصال بكتالوج أثر. تأكد من تشغيل الـ API.');
 });

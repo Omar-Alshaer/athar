@@ -5,6 +5,7 @@ import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { PasswordService } from './password.service';
 import { SessionService } from './session.service';
+import { normalizeInternationalPhone } from './phone.util';
 
 @Injectable()
 export class AuthService {
@@ -16,6 +17,7 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     const email = this.normalizeEmail(dto.email);
+    const normalizedPhone = normalizeInternationalPhone(dto.phone, dto.phoneCountry);
     const existing = await this.prisma.user.findUnique({ where: { email } });
 
     if (existing) {
@@ -27,9 +29,10 @@ export class AuthService {
     try {
       const user = await this.prisma.user.create({
         data: {
-          fullName: dto.fullName.trim(),
+          fullName: dto.fullName.trim().replace(/\s+/g, ' '),
           email,
-          phone: dto.phone?.trim() || null,
+          phone: normalizedPhone.phone,
+          phoneCountry: normalizedPhone.phoneCountry,
           passwordHash,
         },
       });
@@ -48,7 +51,8 @@ export class AuthService {
     const email = this.normalizeEmail(dto.email);
     const user = await this.prisma.user.findUnique({ where: { email } });
 
-    if (!user || !(await this.passwords.verify(dto.password, user.passwordHash))) {
+    const validPassword = await this.passwords.verify(dto.password, user?.passwordHash);
+    if (!user || !validPassword) {
       throw new UnauthorizedException('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
     }
 
