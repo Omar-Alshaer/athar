@@ -3,7 +3,7 @@ limit_req_zone $binary_remote_addr zone=athr_auth:10m rate=10r/m;
 server {
     listen 80;
     listen [::]:80;
-    server_name ${STORE_DOMAIN} ${ADMIN_DOMAIN} ${API_DOMAIN};
+    server_name ${STORE_DOMAIN} www.${STORE_DOMAIN} ${ADMIN_DOMAIN} ${API_DOMAIN};
 
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/letsencrypt;
@@ -15,8 +15,9 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
     server_name ${STORE_DOMAIN};
 
     ssl_certificate /etc/letsencrypt/live/${STORE_DOMAIN}/fullchain.pem;
@@ -45,8 +46,23 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
+
+    server_name www.${STORE_DOMAIN};
+
+    ssl_certificate /etc/letsencrypt/live/${STORE_DOMAIN}/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/${STORE_DOMAIN}/privkey.pem;
+    include /etc/letsencrypt/options-ssl-nginx.conf;
+
+    return 301 https://${STORE_DOMAIN}$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
     server_name ${ADMIN_DOMAIN};
 
     ssl_certificate /etc/letsencrypt/live/${ADMIN_DOMAIN}/fullchain.pem;
@@ -69,8 +85,9 @@ server {
 }
 
 server {
-    listen 443 ssl http2;
-    listen [::]:443 ssl http2;
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    http2 on;
     server_name ${API_DOMAIN};
 
     ssl_certificate /etc/letsencrypt/live/${API_DOMAIN}/fullchain.pem;
@@ -78,6 +95,10 @@ server {
     include /etc/letsencrypt/options-ssl-nginx.conf;
 
     client_max_body_size 85m;
+
+    proxy_headers_hash_max_size 1024;
+    proxy_headers_hash_bucket_size 128;
+
     add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
 
     location = /api/auth/login {

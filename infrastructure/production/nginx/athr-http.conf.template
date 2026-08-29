@@ -1,7 +1,7 @@
 server {
     listen 80;
     listen [::]:80;
-    server_name ${STORE_DOMAIN} ${ADMIN_DOMAIN} ${API_DOMAIN};
+    server_name ${STORE_DOMAIN} www.${STORE_DOMAIN} ${ADMIN_DOMAIN} ${API_DOMAIN};
 
     location ^~ /.well-known/acme-challenge/ {
         root /var/www/letsencrypt;

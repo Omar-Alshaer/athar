@@ -13,6 +13,14 @@ if [[ -z "${SOURCE_DIR}" || ! -f "${SOURCE_DIR}/package.json" ]]; then
 fi
 
 ENV_FILE="/etc/athr/athr.env"
+
+NODE_BIN="$(command -v node)"
+NPM_BIN="$(command -v npm)"
+
+if [[ -z "${NODE_BIN}" || -z "${NPM_BIN}" ]]; then
+  echo "node/npm are required for ATHR deployment." >&2
+  exit 1
+fi
 if [[ ! -r "${ENV_FILE}" ]]; then
   echo "Missing protected environment file: ${ENV_FILE}" >&2
   exit 1
@@ -34,12 +42,12 @@ fi
 rsync -a --delete --exclude='.git/' --exclude='.env' --exclude='.local/' --exclude='node_modules/' --exclude='.build/' "${SOURCE_DIR}/" "${APP_RELEASE}/"
 chown -R athr:athr "${APP_RELEASE}"
 
-runuser -u athr -- npm --prefix "${APP_RELEASE}" ci
-runuser -u athr -- npm --prefix "${APP_RELEASE}" run build:web
-runuser -u athr -- npm --prefix "${APP_RELEASE}" run build:api
-runuser -u athr -- node "${APP_RELEASE}/infrastructure/scripts/with-env.mjs" "${ENV_FILE}" npm --prefix "${APP_RELEASE}" run prisma:migrate:deploy
-runuser -u athr -- node "${APP_RELEASE}/infrastructure/scripts/production-preflight.mjs" "--env-file=${ENV_FILE}" --skip-api
-runuser -u athr -- npm --prefix "${APP_RELEASE}" prune --omit=dev --omit=optional
+runuser -u athr -- "${NPM_BIN}" --prefix "${APP_RELEASE}" ci
+runuser -u athr -- "${NPM_BIN}" --prefix "${APP_RELEASE}" run build:web
+runuser -u athr -- "${NODE_BIN}" "${APP_RELEASE}/infrastructure/scripts/with-env.mjs" "${ENV_FILE}" "${NPM_BIN}" --prefix "${APP_RELEASE}" run build:api
+runuser -u athr -- "${NODE_BIN}" "${APP_RELEASE}/infrastructure/scripts/with-env.mjs" "${ENV_FILE}" "${NPM_BIN}" --prefix "${APP_RELEASE}" run prisma:migrate:deploy
+runuser -u athr -- "${NODE_BIN}" "${APP_RELEASE}/infrastructure/scripts/production-preflight.mjs" "--env-file=${ENV_FILE}" --skip-api
+runuser -u athr -- "${NPM_BIN}" --prefix "${APP_RELEASE}" prune --omit=dev --omit=optional
 
 cp -a "${APP_RELEASE}/.build/storefront" "${WEB_RELEASE}/storefront"
 cp -a "${APP_RELEASE}/.build/admin" "${WEB_RELEASE}/admin"
@@ -59,6 +67,6 @@ systemctl restart athr-api.service
 nginx -t
 systemctl reload nginx
 "${APP_RELEASE}/infrastructure/scripts/health-check.sh"
-node "${APP_RELEASE}/infrastructure/scripts/production-preflight.mjs" "--env-file=${ENV_FILE}"
+"${NODE_BIN}" "${APP_RELEASE}/infrastructure/scripts/production-preflight.mjs" "--env-file=${ENV_FILE}"
 
 echo "ATHR release ${RELEASE_ID} deployed successfully."

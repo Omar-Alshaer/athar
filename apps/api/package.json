@@ -11,7 +11,7 @@
     "prisma:migrate:dev": "prisma migrate dev --config=./prisma.config.ts",
     "prisma:migrate:deploy": "prisma migrate deploy --config=./prisma.config.ts",
     "prisma:migrate:status": "prisma migrate status --config=./prisma.config.ts",
-    "prisma:seed": "tsx prisma/seed.ts",
+    "prisma:seed": "npm run prisma:generate && tsx prisma/seed.ts",
     "prisma:studio": "prisma studio --config=./prisma.config.ts",
     "admin:bootstrap": "npm run prisma:generate && tsx scripts/bootstrap-admin.ts",
     "test:phone": "tsx --test src/auth/phone.util.spec.ts",
