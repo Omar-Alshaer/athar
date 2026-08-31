@@ -264,7 +264,10 @@ function table(headers, rows) {
 
 function openModal(title, content, wide = false) {
   const root = $('#modal-root');
-  root.innerHTML = `<div class="modal-backdrop" data-modal-close><section class="admin-modal${wide ? ' wide' : ''}" role="dialog" aria-modal="true" aria-label="${esc(title)}" onclick="event.stopPropagation()"><header><div><small>ATHR ADMIN</small><h2>${esc(title)}</h2></div><button class="modal-close" type="button" data-modal-close aria-label="إغلاق">×</button></header><div class="modal-body">${content}</div></section></div>`;
+  root.innerHTML = `<div class="modal-backdrop" data-modal-close><section class="admin-modal${wide ? ' wide' : ''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><header><div><small>ATHR ADMIN</small><h2>${esc(title)}</h2></div><button class="modal-close" type="button" data-modal-close aria-label="إغلاق">×</button></header><div class="modal-body">${content}</div></section></div>`;
+  const modal = root.querySelector('.admin-modal');
+  modal?.addEventListener('click', (event) => event.stopPropagation());
+
   root.querySelectorAll('[data-modal-close]').forEach((button) => button.addEventListener('click', closeModal));
 }
 
