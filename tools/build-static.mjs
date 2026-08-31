@@ -30,4 +30,8 @@ for (const name of ['index.html', 'admin.css', 'admin.js']) {
   await cp(new URL(`../apps/admin/${name}`, import.meta.url), new URL(name, admin));
 }
 
+await cp(new URL('../assets/fonts/', import.meta.url), new URL('assets/fonts/', admin), {
+  recursive: true,
+});
+
 console.log(`Production static assets built at ${join('.build', 'storefront')} and ${join('.build', 'admin')}.`);
