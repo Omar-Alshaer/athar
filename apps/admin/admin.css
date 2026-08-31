@@ -20,3 +20,13 @@
 .digital-file-current{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:12px;padding:13px 14px;border:1px solid #d7e2d9;background:#f7faf7;border-radius:12px}
 .digital-file-current b,.digital-file-current small{display:block}.digital-file-current small{color:var(--muted);margin-top:3px;font-size:11px}
 @media(max-width:760px){.digital-file-current{align-items:flex-start;flex-direction:column}}
+
+
+/* ATHR dual currency admin pricing */
+.pricing-editor{margin:16px 0;padding:18px;border:1px solid #dde6df;border-radius:18px;background:#f8faf8}
+.pricing-editor-head{margin-bottom:14px}
+.pricing-editor-head h3{margin:0 0 4px}
+.pricing-editor-head p{margin:0;color:#69756d;font-size:.88rem}
+.admin-dual-price{display:grid;gap:3px;min-width:150px}
+.admin-dual-price del{color:#8a948e;font-size:.82rem}
+.admin-dual-price small{color:#68736c}

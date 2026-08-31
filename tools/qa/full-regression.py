@@ -744,8 +744,11 @@ def main() -> int:
                 "descriptionAr": "QA temporary product",
                 "categoryId": category_id,
                 "price": 1.23,
-                "currency": "SAR",
-                "status": "PUBLISHED",
+                "compareAtPrice": 2.46,
+                "sarPrice": 0.10,
+                "sarCompareAtPrice": 0.20,
+                "currency": "EGP",
+                "status": "DRAFT",
                 "featured": False,
                 "formatLabelAr": "PDF رقمي",
                 "contentLabelAr": "اختبار آلي",
@@ -753,8 +756,8 @@ def main() -> int:
         ).json()["product"]
         product_id = product["id"]
         expect(
-            product["status"] == "PUBLISHED",
-            "Admin creates published product",
+            product["status"] == "DRAFT",
+            "Admin creates draft product",
         )
 
         png = base64.b64decode(
@@ -802,6 +805,17 @@ def main() -> int:
             "Private PDF upload",
         )
 
+        published = admin.request(
+            "PATCH",
+            f"{API}/admin/products/{product_id}",
+            json_body={"status": "PUBLISHED"},
+        ).json()["product"]
+
+        expect(
+            published.get("status") == "PUBLISHED",
+            "Admin publishes product after digital file upload",
+        )
+
         public_product = get_json(
             plain,
             f"{API}/products/{product_slug}",
@@ -814,6 +828,20 @@ def main() -> int:
             public_product.get("slug") == product_slug,
             "New product visible in public catalog",
         )
+
+        expect(
+            public_product.get("currency") == "EGP"
+            and abs(float(public_product.get("price", 0)) - 1.23) < 0.001,
+            "Public product exposes EGP checkout price",
+        )
+
+        expect(
+            abs(float(public_product.get("sarPrice", 0)) - 0.10) < 0.001
+            and abs(float(public_product.get("compareAtPrice", 0)) - 2.46) < 0.001
+            and abs(float(public_product.get("sarCompareAtPrice", 0)) - 0.20) < 0.001,
+            "Public product exposes SAR and discount prices",
+        )
+
         expect(
             bool(public_product.get("coverImage")),
             "Public product exposes Cloudinary cover",
@@ -982,6 +1010,13 @@ def main() -> int:
             order["status"] == "PENDING_PAYMENT",
             "Checkout creates pending order",
         )
+
+        expect(
+            order.get("currency") == "EGP"
+            and abs(float(order.get("total", 0)) - 1.23) < 0.001,
+            "Checkout order uses authoritative EGP price",
+        )
+
         expect(
             checkout.get("payment", {}).get("provider") == "MOCK",
             "Local payment provider is MOCK",

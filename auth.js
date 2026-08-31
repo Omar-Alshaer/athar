@@ -10,7 +10,7 @@
   let phoneInput;
   try {
     phoneInput = window.ATHR_PHONE.create(document.getElementById('register-phone'), {
-      initialCountry: 'SA',
+      initialCountry: 'EG',
     });
   } catch (error) {
     showMessage(error.message);

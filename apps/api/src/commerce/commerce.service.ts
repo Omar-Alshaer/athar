@@ -79,8 +79,8 @@ export class CommerceService {
     if (totalCents <= 0) throw new BadRequestException('قيمة الطلب غير صالحة.');
 
     const currency = products[0].currency;
-    if (currency.trim().toUpperCase() !== 'SAR') {
-      throw new BadRequestException('الدفع متاح حاليًا للمنتجات المسعرة بالريال السعودي فقط.');
+    if (currency.trim().toUpperCase() !== 'EGP') {
+      throw new BadRequestException('الدفع متاح حاليًا للمنتجات المسعرة بالجنيه المصري فقط.');
     }
     const provider = this.paymentProvider();
 

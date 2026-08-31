@@ -1,4 +1,5 @@
 const DATA = window.ATHR_DATA;
+const MERCHANT = Object.freeze({"businessName": "أثر للمنتجات الرقمية", "addressAr": "الحصورة، مركز أبو كبير، محافظة الشرقية، جمهورية مصر العربية", "phone": "+201062098087", "email": "contact@athar-online.com", "taxRegistration": "", "siteUrl": "https://athar-online.com"});
 const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 
@@ -20,15 +21,35 @@ const icons = {
   trash:'<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 15H6L5 6"/><path d="M10 11v6M14 11v6"/>'
 };
 function icon(name, cls='') { return `<svg class="icon ${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${icons[name]||''}</svg>`; }
-function money(value, currency='SAR'){
+function money(value, currency='EGP'){
   const amount = Number(value);
+  if (currency === 'EGP') return `${amount.toFixed(2)} ج.م`;
   if (currency === 'SAR') return `${amount.toFixed(2)} ر.س`;
-  return new Intl.NumberFormat('en-US', {
+  return new Intl.NumberFormat('ar-EG', {
     style: 'currency',
     currency
   }).format(amount);
 }
 function escapeHtml(value){ return String(value??'').replace(/[&<>"']/g,ch=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch])); }
+function hasProductDiscount(p){
+  return Number(p?.compareAtPrice) > Number(p?.price)
+    && Number(p?.sarCompareAtPrice) > Number(p?.sarPrice);
+}
+function productDiscountPercent(p){
+  if(!hasProductDiscount(p)) return 0;
+  return Math.max(1,Math.round((1-Number(p.price)/Number(p.compareAtPrice))*100));
+}
+function discountBadge(p){
+  const percent=productDiscountPercent(p);
+  return percent?`<span class="discount-badge">خصم ${percent}%</span>`:'';
+}
+function productPriceMarkup(p,compact=false){
+  const discounted=hasProductDiscount(p);
+  return `<div class="dual-price ${compact?'compact':''}">
+    <div class="dual-price-line primary-currency"><b>${money(p.price,'EGP')}</b>${discounted?`<del>${money(p.compareAtPrice,'EGP')}</del>`:''}</div>
+    <div class="dual-price-line secondary-currency"><b>${money(p.sarPrice,'SAR')}</b>${discounted?`<del>${money(p.sarCompareAtPrice,'SAR')}</del>`:''}</div>
+  </div>`;
+}
 function productCoverClass(p){ return p?.cover||'cover-green'; }
 function catalogUnavailableMarkup(){ return '<div class="empty-state catalog-unavailable"><h3>تعذر تحميل المنتجات حاليًا</h3><p>تأكد من تشغيل خدمة أثر ثم أعد تحميل الصفحة.</p></div>'; }
 function productCoverVisual(p,cat){
@@ -201,12 +222,13 @@ function productCard(p){
     <a class="cover ${productCoverClass(p)} ${hasImage?'has-cloudinary-image':''}" href="product.html?id=${encodeURIComponent(p.id)}" aria-label="${escapeHtml(p.title)}">
       ${productCoverVisual(p,cat)}
       <span class="product-badge">${escapeHtml(p.badge||'منتج رقمي')}</span>
+      ${discountBadge(p)}
       <button class="wish-btn ${isWishlisted(p.id)?'active':''}" type="button" data-wishlist-id="${escapeHtml(p.id)}" aria-label="${isWishlisted(p.id)?'إزالة من المفضلة':'أضف للمفضلة'}" aria-pressed="${isWishlisted(p.id)}">${icon('heart2')}</button>
     </a>
     <div class="product-meta">
       <a class="product-title" href="product.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a>
       <div class="rating"><span>★</span> ${p.rating} <em>(${p.reviews})</em></div>
-      <div class="price-row"><b>${money(p.price)}</b>${p.oldPrice?`<del>${money(p.oldPrice)}</del>`:''}</div>
+      <div class="price-row">${productPriceMarkup(p,true)}</div>
       <button class="quick-add" type="button" data-cart-action="add" data-product-id="${escapeHtml(p.id)}">${icon('bag')} أضف للسلة</button>
     </div>
   </article>`;
@@ -231,12 +253,57 @@ function nav(){
   <div class="search-panel"><div class="container"><form action="shop.html" class="search-form"><input name="q" placeholder="ابحث عن منتج، كتاب أو دليل..." autofocus><button>بحث</button></form></div></div></header>`;
 }
 
-function footer(){ return `<footer class="footer"><div class="container footer-grid">
-  <div><a class="brand footer-brand" href="index.html"><img src="assets/athr-logo.png" alt="أثر"><span><b>أثر</b><small>معرفة تترك أثرًا</small></span></a><p>منتجات رقمية عربية هادفة صُممت لتساعدك على بناء حياة أكثر وعيًا واتزانًا.</p></div>
-  <div><h4>استكشف</h4><a href="shop.html">كل المنتجات</a><a href="shop.html?category=kids">الطفل والتربية</a><a href="shop.html?category=growth">تطوير الذات</a><a href="shop.html?category=money">الوعي المالي</a></div>
-  <div><h4>المساعدة</h4><a href="#">الأسئلة الشائعة</a><a href="#">سياسة الاستخدام</a><a href="#">سياسة الاسترجاع</a><a href="#">تواصل معنا</a></div>
-  <div><h4>أثر جديد في بريدك</h4><p>منتجات وأفكار وموارد مختارة، بدون إزعاج.</p><form class="newsletter" id="newsletter-form"><input type="email" name="email" required autocomplete="email" placeholder="البريد الإلكتروني" aria-label="البريد الإلكتروني"><button type="submit">انضم</button></form></div>
-  </div><div class="container copyright"><span>© 2026 أثر. جميع الحقوق محفوظة.</span><span>منتج صغير. أثر حقيقي.</span></div></footer>`; }
+function footer(){
+  const phoneHref=MERCHANT.phone.replace(/[^\d+]/g,'');
+  const taxMarkup=MERCHANT.taxRegistration
+    ? `<span><b>رقم التسجيل الضريبي:</b> ${escapeHtml(MERCHANT.taxRegistration)}</span>`
+    : '';
+
+  return `<footer class="footer"><div class="container footer-grid">
+  <div>
+    <a class="brand footer-brand" href="index.html"><img src="assets/athr-logo.png" alt="أثر"><span><b>أثر</b><small>معرفة تترك أثرًا</small></span></a>
+    <p>منتجات رقمية عربية هادفة صُممت لتساعدك على بناء حياة أكثر وعيًا واتزانًا.</p>
+
+    <address class="merchant-footer-contact">
+      <span><b>العنوان:</b> ${escapeHtml(MERCHANT.addressAr)}</span>
+      <a href="tel:${escapeHtml(phoneHref)}"><b>الهاتف:</b> ${escapeHtml(MERCHANT.phone)}</a>
+      <a href="mailto:${escapeHtml(MERCHANT.email)}"><b>البريد الإلكتروني:</b> ${escapeHtml(MERCHANT.email)}</a>
+      <a href="${escapeHtml(MERCHANT.siteUrl)}"><b>الموقع الرسمي:</b> athar-online.com</a>
+      ${taxMarkup}
+    </address>
+  </div>
+
+  <div>
+    <h4>استكشف</h4>
+    <a href="shop.html">كل المنتجات</a>
+    <a href="shop.html?category=kids">الطفل والتربية</a>
+    <a href="shop.html?category=growth">تطوير الذات</a>
+    <a href="shop.html?category=money">الوعي المالي</a>
+  </div>
+
+  <div>
+    <h4>المساعدة والسياسات</h4>
+    <a href="contact.html">تواصل معنا</a>
+    <a href="refund-policy.html">سياسة الاستبدال والاسترجاع</a>
+    <a href="terms.html">الشروط والأحكام</a>
+  </div>
+
+  <div>
+    <h4>أثر جديد في بريدك</h4>
+    <p>منتجات وأفكار وموارد مختارة، بدون إزعاج.</p>
+    <form class="newsletter" id="newsletter-form">
+      <input type="email" name="email" required autocomplete="email" placeholder="البريد الإلكتروني" aria-label="البريد الإلكتروني">
+      <button type="submit">انضم</button>
+    </form>
+  </div>
+  </div>
+
+  <div class="container copyright">
+    <span>© 2026 أثر. جميع الحقوق محفوظة.</span>
+    <span>الأسعار معروضة بالجنيه المصري والريال السعودي، والدفع الإلكتروني يتم بالجنيه المصري.</span>
+  </div>
+  </footer>`;
+}
 
 async function subscribeNewsletter(form){
   const input=form.querySelector('input[name="email"]');
@@ -359,8 +426,8 @@ function initProduct(){
   const previewMarkup=previews.length
     ? previews.map(image=>`<span class="mini-preview-image"><img src="${escapeHtml(image.secureUrl)}" alt="${escapeHtml(image.altAr||p.title)}" loading="lazy"></span>`).join('')
     : '<span>معاينة 1</span><span>معاينة 2</span><span>معاينة 3</span>';
-  root.innerHTML=`<div class="product-detail-grid"><div class="product-gallery"><div class="cover detail-cover ${productCoverClass(p)} ${hasImage?'has-cloudinary-image':''}">${productCoverVisual(p,cat)}<span class="product-badge">${escapeHtml(p.badge||'منتج أثر')}</span><button class="wish-btn ${isWishlisted(p.id)?'active':''}" type="button" data-wishlist-id="${escapeHtml(p.id)}" aria-label="${isWishlisted(p.id)?'إزالة من المفضلة':'أضف للمفضلة'}" aria-pressed="${isWishlisted(p.id)}">${icon('heart2')}</button></div><div class="mini-previews">${previewMarkup}</div></div>
-  <div class="product-info"><a class="crumb" href="shop.html?category=${encodeURIComponent(cat.id)}">${escapeHtml(cat.name)}</a><h1>${escapeHtml(p.title)}</h1><div class="rating big"><span>★</span> ${p.rating} <em>(${p.reviews} تقييم)</em></div><p class="lead">${escapeHtml(p.subtitle)}</p><div class="price-big">${money(p.price)} ${p.oldPrice?`<del>${money(p.oldPrice)}</del>`:''}</div><div class="buy-actions"><button class="primary-btn" type="button" data-cart-action="add" data-product-id="${escapeHtml(p.id)}">${icon('bag')} أضف للسلة</button><button class="secondary-btn" type="button" data-cart-action="buy-now" data-product-id="${escapeHtml(p.id)}">اشترِ الآن</button></div>
+  root.innerHTML=`<div class="product-detail-grid"><div class="product-gallery"><div class="cover detail-cover ${productCoverClass(p)} ${hasImage?'has-cloudinary-image':''}">${productCoverVisual(p,cat)}<span class="product-badge">${escapeHtml(p.badge||'منتج أثر')}</span>${discountBadge(p)}<button class="wish-btn ${isWishlisted(p.id)?'active':''}" type="button" data-wishlist-id="${escapeHtml(p.id)}" aria-label="${isWishlisted(p.id)?'إزالة من المفضلة':'أضف للمفضلة'}" aria-pressed="${isWishlisted(p.id)}">${icon('heart2')}</button></div><div class="mini-previews">${previewMarkup}</div></div>
+  <div class="product-info"><a class="crumb" href="shop.html?category=${encodeURIComponent(cat.id)}">${escapeHtml(cat.name)}</a><h1>${escapeHtml(p.title)}</h1><div class="rating big"><span>★</span> ${p.rating} <em>(${p.reviews} تقييم)</em></div><p class="lead">${escapeHtml(p.subtitle)}</p><div class="price-big">${productPriceMarkup(p)}</div><div class="buy-actions"><button class="primary-btn" type="button" data-cart-action="add" data-product-id="${escapeHtml(p.id)}">${icon('bag')} أضف للسلة</button><button class="secondary-btn" type="button" data-cart-action="buy-now" data-product-id="${escapeHtml(p.id)}">اشترِ الآن</button></div>
   <div class="mini-trust"><span>${icon('download')} تحميل فوري</span><span>${icon('shield')} دفع آمن</span><span>${icon('spark')} وصول مدى الحياة</span></div>
   <div class="product-spec"><div><span>النوع</span><b>${escapeHtml(p.format)}</b></div><div><span>المحتوى</span><b>${escapeHtml(p.pages)}</b></div><div><span>الوصول</span><b>فوري بعد الدفع</b></div></div></div></div>
   <section class="detail-copy"><h2>هذا المنتج سيساعدك على</h2><div class="benefit-list"><p>✓ تحويل الفكرة إلى خطوات بسيطة وقابلة للتطبيق.</p><p>✓ المتابعة بدون تعقيد أو شعور بالضغط.</p><p>✓ بناء وعي أعمق بالموضوع بطريقة عملية.</p><p>✓ الاحتفاظ بنسختك والرجوع لها في أي وقت.</p></div><h2>ماذا ستحصل عليه؟</h2><p>${escapeHtml(p.description||'نسخة رقمية مصممة بعناية، جاهزة للتحميل والاستخدام فور إتمام عملية الشراء. يمكن استخدامها على الهاتف أو الكمبيوتر.')}</p></section>`;
@@ -387,8 +454,9 @@ function renderCart(){
   const cart=getCart(); const rows=cart.map(row=>({row,p:DATA.products.find(p=>p.id===row.id)})).filter(x=>x.p);
   if(!rows.length){root.innerHTML='<div class="empty-cart"><div class="empty-bag">'+icon('bag')+'</div><h2>سلتك ما زالت فارغة</h2><p>اكتشف منتجات أثر واختر ما يناسب رحلتك.</p><a class="primary-btn" href="shop.html">تصفح المتجر</a></div>';return}
   const subtotal=rows.reduce((s,x)=>s+x.p.price,0);
-  root.innerHTML=`<div class="cart-layout"><div class="cart-items">${rows.map(({row,p})=>`<div class="cart-row"><a class="cover cart-cover ${productCoverClass(p)} ${p.coverUrl?'has-cloudinary-image':''}" href="product.html?id=${encodeURIComponent(p.id)}">${p.coverUrl?`<img class="product-cover-image" src="${escapeHtml(p.coverUrl)}" alt="${escapeHtml(p.coverAlt||p.title)}" loading="lazy">`:`<span class="cover-brand">أثر</span><strong>${escapeHtml(p.title)}</strong>`}</a><div class="cart-main"><a href="product.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a><span>${escapeHtml(p.format)}</span><b>${money(p.price)}</b></div><div class="qty"><span>نسخة رقمية واحدة</span></div><strong>${money(p.price)}</strong><button class="trash" type="button" data-cart-action="remove" data-product-id="${escapeHtml(p.id)}">${icon('trash')}</button></div>`).join('')}</div>
-  <aside class="order-summary"><h2>ملخص الطلب</h2><div><span>المجموع</span><b>${money(subtotal)}</b></div><div><span>التوصيل</span><b>رقمي — مجاني</b></div><hr><div class="total"><span>الإجمالي</span><b>${money(subtotal)}</b></div><button class="primary-btn full" id="checkout-open">إتمام الطلب</button><p>${icon('shield')} دفع آمن — لن يتم طلب عنوان شحن للمنتجات الرقمية.</p></aside></div>`;
+  const subtotalSar=rows.reduce((s,x)=>s+Number(x.p.sarPrice||0),0);
+  root.innerHTML=`<div class="cart-layout"><div class="cart-items">${rows.map(({row,p})=>`<div class="cart-row"><a class="cover cart-cover ${productCoverClass(p)} ${p.coverUrl?'has-cloudinary-image':''}" href="product.html?id=${encodeURIComponent(p.id)}">${p.coverUrl?`<img class="product-cover-image" src="${escapeHtml(p.coverUrl)}" alt="${escapeHtml(p.coverAlt||p.title)}" loading="lazy">`:`<span class="cover-brand">أثر</span><strong>${escapeHtml(p.title)}</strong>`}</a><div class="cart-main"><a href="product.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a><span>${escapeHtml(p.format)}</span></div><div class="qty"><span>نسخة رقمية واحدة</span></div><strong class="cart-dual-price">${productPriceMarkup(p,true)}</strong><button class="trash" type="button" data-cart-action="remove" data-product-id="${escapeHtml(p.id)}">${icon('trash')}</button></div>`).join('')}</div>
+  <aside class="order-summary"><h2>ملخص الطلب</h2><div><span>المجموع</span><b>${money(subtotal,'EGP')}<small>${money(subtotalSar,'SAR')}</small></b></div><div><span>التوصيل</span><b>رقمي — مجاني</b></div><hr><div class="total"><span>الإجمالي</span><b>${money(subtotal,'EGP')}<small>${money(subtotalSar,'SAR')}</small></b></div><button class="primary-btn full" id="checkout-open">إتمام الطلب</button><p>${icon('shield')} دفع آمن — لن يتم طلب عنوان شحن للمنتجات الرقمية.</p></aside></div>`;
   $('#checkout-open')?.addEventListener('click',()=>{ window.location.href='checkout.html'; });
 }
 

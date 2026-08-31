@@ -46,7 +46,7 @@
     document.getElementById('checkout-name').value = user.fullName || '';
     document.getElementById('checkout-email').value = user.email || '';
     phoneInput = window.ATHR_PHONE.create(document.getElementById('checkout-phone'), {
-      initialCountry: user.phoneCountry || 'SA',
+      initialCountry: user.phoneCountry || 'EG',
       initialNumber: user.phone || '',
     });
     if (authNote) authNote.textContent = `سيتم ربط الطلب بحساب ${user.email}.`;
@@ -71,6 +71,7 @@
   })).filter(item => item.product);
 
   const subtotal = rows.reduce((sum, item) => sum + item.product.price, 0);
+  const subtotalSar = rows.reduce((sum, item) => sum + Number(item.product.sarPrice || 0), 0);
 
   if (!rows.length) {
     itemsRoot.innerHTML = '<div class="checkout-empty"><p>سلتك فارغة حاليًا.</p><a class="primary-btn" href="shop.html">تصفح المنتجات</a></div>';
@@ -86,12 +87,12 @@
         <strong>${escapeHtml(product.title)}</strong>
         <span>${escapeHtml(product.format || 'منتج رقمي')} · نسخة واحدة</span>
       </div>
-      <b class="checkout-item-price">${money(product.price)}</b>
+      <b class="checkout-item-price">${money(product.price,'EGP')}<small>${money(product.sarPrice,'SAR')}</small></b>
     </div>
   `).join('');
 
-  subtotalNode.textContent = money(subtotal);
-  totalNode.textContent = money(subtotal);
+  subtotalNode.innerHTML = `${money(subtotal,'EGP')}<small class="checkout-currency-secondary">${money(subtotalSar,'SAR')}</small>`;
+  totalNode.innerHTML = `${money(subtotal,'EGP')}<small class="checkout-currency-secondary">${money(subtotalSar,'SAR')}</small>`;
 
   form.addEventListener('submit', async event => {
     event.preventDefault();

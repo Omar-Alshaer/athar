@@ -148,8 +148,11 @@ model Product {
   subtitleAr       String
   descriptionAr    String?
   categoryId       String
-  price            Decimal         @db.Decimal(10, 2)
-  currency         String          @default("SAR")
+  price             Decimal         @db.Decimal(10, 2)
+  compareAtPrice    Decimal?        @db.Decimal(10, 2)
+  sarPrice          Decimal         @db.Decimal(10, 2)
+  sarCompareAtPrice Decimal?        @db.Decimal(10, 2)
+  currency          String          @default("EGP")
   status           ProductStatus   @default(DRAFT)
   featured         Boolean         @default(false)
   badgeAr          String?
@@ -225,7 +228,7 @@ model Order {
   orderNumber String      @unique
   userId      String
   status      OrderStatus @default(PENDING_PAYMENT)
-  currency    String      @default("SAR")
+  currency    String      @default("EGP")
   subtotal    Decimal     @db.Decimal(10, 2)
   total       Decimal     @db.Decimal(10, 2)
   paidAt      DateTime?
@@ -262,7 +265,7 @@ model Payment {
   provider           PaymentProvider
   status             PaymentStatus   @default(PENDING)
   amount             Decimal         @db.Decimal(10, 2)
-  currency           String          @default("SAR")
+  currency           String          @default("EGP")
   providerCheckoutId String?         @unique
   providerCheckoutUrl String?
   providerPaymentId  String?         @unique

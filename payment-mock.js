@@ -4,7 +4,7 @@
   if (!root) return;
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch]));
-  const money = value => `${Number(value).toFixed(2)}$`;
+  const money = value => `${Number(value).toFixed(2)} ج.م`;
 
   const request = async (path, options = {}) => {
     const response = await fetch(`${window.ATHR_DATA.apiBase}${path}`, {

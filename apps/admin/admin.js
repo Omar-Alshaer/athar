@@ -48,8 +48,15 @@ function formatDate(value) {
   return new Intl.DateTimeFormat('ar-EG', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value));
 }
 
-function money(value, currency = 'SAR') {
+function money(value, currency = 'EGP') {
   return new Intl.NumberFormat('ar-EG', { style: 'currency', currency }).format(Number(value || 0));
+}
+
+function productPriceAdmin(p) {
+  const discounted = Number(p.compareAtPrice) > Number(p.price)
+    && Number(p.sarCompareAtPrice) > Number(p.sarPrice);
+  const percent = discounted ? Math.max(1,Math.round((1-Number(p.price)/Number(p.compareAtPrice))*100)) : 0;
+  return `<div class="admin-dual-price"><b>${money(p.price,'EGP')}</b>${discounted?`<del>${money(p.compareAtPrice,'EGP')}</del>`:''}<small>${money(p.sarPrice,'SAR')}${discounted?` · قبل الخصم ${money(p.sarCompareAtPrice,'SAR')}`:''}</small>${percent?`<span class="badge warn">خصم ${percent}%</span>`:''}</div>`;
 }
 
 function formatBytes(value) {
@@ -212,7 +219,7 @@ function renderProducts({ items }) {
     return [
       `<div class="product-cell">${thumb}<div><strong>${esc(p.titleAr)}</strong><small>${esc(p.slug)}</small></div></div>`,
       esc(p.category.nameAr),
-      money(p.price,p.currency),
+      productPriceAdmin(p),
       badge(p.status),
       p.featured ? '<span class="badge">مميز</span>' : '—',
       p.digitalFileReady ? `<span class="badge">جاهز · ${esc(formatBytes(p.digitalFileBytes))}</span>` : '<span class="badge warn">غير مرفوع</span>',
@@ -299,11 +306,22 @@ async function openProductEditor(id = null) {
           <label>Slug بالإنجليزية<input name="slug" required pattern="[a-z0-9]+(?:-[a-z0-9]+)*" placeholder="financial-awareness" value="${esc(product?.slug || '')}"></label>
         </div>
         <label>العنوان الفرعي<input name="subtitleAr" required minlength="2" maxlength="220" value="${esc(product?.subtitleAr || '')}"></label>
-        <div class="form-grid three">
+        <div class="form-grid two">
           <label>التصنيف<select name="categoryId" required><option value="">اختر التصنيف</option>${categoryOptions(product?.categoryId || product?.category?.id || '')}</select></label>
-          <label>السعر بالريال السعودي<input name="price" type="number" min="0.01" step="0.01" required value="${product?.price ?? '39.99'}"></label>
           <label>الحالة<select name="status"><option value="DRAFT" ${product?.status === 'DRAFT' || !product ? 'selected' : ''}>مسودة</option><option value="PUBLISHED" ${product?.status === 'PUBLISHED' ? 'selected' : ''}>منشور</option><option value="ARCHIVED" ${product?.status === 'ARCHIVED' ? 'selected' : ''}>مؤرشف</option></select></label>
         </div>
+        <section class="pricing-editor">
+          <div class="pricing-editor-head"><h3>الأسعار والخصم</h3><p>الجنيه المصري هو مبلغ الدفع عبر XPay، والريال السعودي يظهر بجانبه للعميل.</p></div>
+          <div class="form-grid two">
+            <label>السعر النهائي بالجنيه المصري<input name="price" type="number" min="0.01" step="0.01" required value="${product?.price ?? '500.00'}"></label>
+            <label>السعر قبل الخصم بالجنيه المصري<input name="compareAtPrice" type="number" min="0.01" step="0.01" placeholder="اختياري" value="${product?.compareAtPrice ?? ''}"></label>
+          </div>
+          <div class="form-grid two">
+            <label>السعر النهائي بالريال السعودي<input name="sarPrice" type="number" min="0.01" step="0.01" required value="${product?.sarPrice ?? '39.99'}"></label>
+            <label>السعر قبل الخصم بالريال السعودي<input name="sarCompareAtPrice" type="number" min="0.01" step="0.01" placeholder="اختياري" value="${product?.sarCompareAtPrice ?? ''}"></label>
+          </div>
+          <p class="form-hint">مثال: السعر النهائي 35 ر.س والسعر قبل الخصم 50 ر.س. أدخل القيمتين المقابلتين بالجنيه أيضًا ليظهر الخصم بالعملتين.</p>
+        </section>
         <div class="form-grid three">
           <label>شارة المنتج<input name="badgeAr" maxlength="80" placeholder="منتج أثر" value="${esc(product?.badgeAr || '')}"></label>
           <label>صيغة الملف<input name="formatLabelAr" maxlength="80" value="${esc(product?.formatLabelAr || 'PDF رقمي')}"></label>
@@ -386,7 +404,10 @@ async function submitProductForm(event) {
     subtitleAr: form.elements.subtitleAr.value.trim(),
     categoryId: form.elements.categoryId.value,
     price: Number(form.elements.price.value),
-    currency: 'SAR',
+    compareAtPrice: form.elements.compareAtPrice.value ? Number(form.elements.compareAtPrice.value) : null,
+    sarPrice: Number(form.elements.sarPrice.value),
+    sarCompareAtPrice: form.elements.sarCompareAtPrice.value ? Number(form.elements.sarCompareAtPrice.value) : null,
+    currency: 'EGP',
     status: form.elements.status.value,
     featured: form.elements.featured.checked,
     badgeAr: form.elements.badgeAr.value.trim(),
@@ -394,6 +415,21 @@ async function submitProductForm(event) {
     contentLabelAr: form.elements.contentLabelAr.value.trim(),
     descriptionAr: form.elements.descriptionAr.value.trim(),
   };
+
+  const hasEgpDiscount = payload.compareAtPrice != null;
+  const hasSarDiscount = payload.sarCompareAtPrice != null;
+  if (hasEgpDiscount !== hasSarDiscount) {
+    fieldError(form, 'لو هتضيف خصم، أدخل السعر قبل الخصم بالعملتين معًا.');
+    return;
+  }
+  if (hasEgpDiscount && payload.compareAtPrice <= payload.price) {
+    fieldError(form, 'السعر قبل الخصم بالجنيه يجب أن يكون أكبر من السعر النهائي.');
+    return;
+  }
+  if (hasSarDiscount && payload.sarCompareAtPrice <= payload.sarPrice) {
+    fieldError(form, 'السعر قبل الخصم بالريال يجب أن يكون أكبر من السعر النهائي.');
+    return;
+  }
 
   fieldError(form, '');
   submit.disabled = true;

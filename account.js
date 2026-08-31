@@ -16,8 +16,9 @@
   }
 
   const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch]));
-  const money = (value, currency = 'SAR') => {
+  const money = (value, currency = 'EGP') => {
     const amount = Number(value);
+    if (currency === 'EGP') return `${amount.toFixed(2)} ج.م`;
     if (currency === 'SAR') return `${amount.toFixed(2)} ر.س`;
     return new Intl.NumberFormat('en-US', {
       style: 'currency',

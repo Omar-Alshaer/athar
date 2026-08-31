@@ -7,7 +7,7 @@
     if (options.initialNumber) input.value = options.initialNumber;
 
     const instance = window.intlTelInput(input, {
-      initialCountry: String(options.initialCountry || 'SA').toLowerCase(),
+      initialCountry: String(options.initialCountry || 'EG').toLowerCase(),
       separateDialCode: true,
       countrySearch: true,
       countryNameLocale: 'ar',

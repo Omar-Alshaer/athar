@@ -159,7 +159,7 @@ export class AdminService {
         payments: { successful: successfulPayments },
         revenue: {
           amount: Number(revenue._sum.total ?? 0),
-          currency: 'SAR',
+          currency: 'EGP',
         },
       },
       cloudinary: { configured: this.cloudinary.isConfigured() },
@@ -249,6 +249,13 @@ export class AdminService {
     await this.assertCategoryExists(dto.categoryId);
     await this.assertProductSlugAvailable(dto.slug);
 
+    this.assertProductPricing(
+      dto.price,
+      dto.compareAtPrice,
+      dto.sarPrice,
+      dto.sarCompareAtPrice,
+    );
+
     const status = dto.status ?? ProductStatus.DRAFT;
     if (status === ProductStatus.PUBLISHED) {
       throw new BadRequestException(
@@ -264,7 +271,10 @@ export class AdminService {
         descriptionAr: dto.descriptionAr?.trim(),
         categoryId: dto.categoryId,
         price: dto.price,
-        currency: dto.currency ?? 'SAR',
+        compareAtPrice: dto.compareAtPrice ?? null,
+        sarPrice: dto.sarPrice,
+        sarCompareAtPrice: dto.sarCompareAtPrice ?? null,
+        currency: dto.currency ?? 'EGP',
         status,
         featured: dto.featured ?? false,
         badgeAr: dto.badgeAr?.trim(),
@@ -294,6 +304,17 @@ export class AdminService {
 
     const nextStatus = dto.status ?? existing.status;
 
+    this.assertProductPricing(
+      dto.price ?? Number(existing.price),
+      dto.compareAtPrice !== undefined
+        ? dto.compareAtPrice
+        : existing.compareAtPrice === null ? null : Number(existing.compareAtPrice),
+      dto.sarPrice ?? Number(existing.sarPrice),
+      dto.sarCompareAtPrice !== undefined
+        ? dto.sarCompareAtPrice
+        : existing.sarCompareAtPrice === null ? null : Number(existing.sarCompareAtPrice),
+    );
+
     if (
       nextStatus === ProductStatus.PUBLISHED &&
       existing.status !== ProductStatus.PUBLISHED &&
@@ -313,6 +334,9 @@ export class AdminService {
         ...(dto.descriptionAr !== undefined ? { descriptionAr: dto.descriptionAr.trim() } : {}),
         ...(dto.categoryId !== undefined ? { categoryId: dto.categoryId } : {}),
         ...(dto.price !== undefined ? { price: dto.price } : {}),
+        ...(dto.compareAtPrice !== undefined ? { compareAtPrice: dto.compareAtPrice } : {}),
+        ...(dto.sarPrice !== undefined ? { sarPrice: dto.sarPrice } : {}),
+        ...(dto.sarCompareAtPrice !== undefined ? { sarCompareAtPrice: dto.sarCompareAtPrice } : {}),
         ...(dto.currency !== undefined ? { currency: dto.currency } : {}),
         ...(dto.status !== undefined ? { status: dto.status } : {}),
         ...(dto.featured !== undefined ? { featured: dto.featured } : {}),
@@ -678,10 +702,41 @@ export class AdminService {
     return {
       ...safeProduct,
       price: Number(product.price),
+      compareAtPrice: product.compareAtPrice === null ? null : Number(product.compareAtPrice),
+      sarPrice: Number(product.sarPrice),
+      sarCompareAtPrice: product.sarCompareAtPrice === null ? null : Number(product.sarCompareAtPrice),
       ratingAverage: Number(product.ratingAverage),
       digitalFileReady: Boolean(digitalFileKey),
       digitalFileBytes: digitalFileBytes === null ? null : Number(digitalFileBytes),
     };
+  }
+
+  private assertProductPricing(
+    egpPrice: number,
+    egpCompareAtPrice: number | null | undefined,
+    sarPrice: number,
+    sarCompareAtPrice: number | null | undefined,
+  ) {
+    const hasEgpDiscount = egpCompareAtPrice != null;
+    const hasSarDiscount = sarCompareAtPrice != null;
+
+    if (hasEgpDiscount !== hasSarDiscount) {
+      throw new BadRequestException(
+        'عند إضافة خصم يجب إدخال السعر قبل الخصم بالجنيه المصري والريال السعودي معًا.',
+      );
+    }
+
+    if (hasEgpDiscount && egpCompareAtPrice! <= egpPrice) {
+      throw new BadRequestException(
+        'السعر قبل الخصم بالجنيه المصري يجب أن يكون أكبر من السعر النهائي.',
+      );
+    }
+
+    if (hasSarDiscount && sarCompareAtPrice! <= sarPrice) {
+      throw new BadRequestException(
+        'السعر قبل الخصم بالريال السعودي يجب أن يكون أكبر من السعر النهائي.',
+      );
+    }
   }
 
   private async requireProduct(id: string) {

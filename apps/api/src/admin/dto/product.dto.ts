@@ -46,8 +46,28 @@ export class CreateProductDto {
   price!: number;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(999999.99)
+  compareAtPrice?: number | null;
+
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(999999.99)
+  sarPrice!: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(999999.99)
+  sarCompareAtPrice?: number | null;
+
+  @IsOptional()
   @IsString()
-  @Equals('SAR')
+  @Equals('EGP')
   currency?: string;
 
   @IsOptional()
@@ -108,8 +128,29 @@ export class UpdateProductDto {
   price?: number;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(999999.99)
+  compareAtPrice?: number | null;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(999999.99)
+  sarPrice?: number;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  @Max(999999.99)
+  sarCompareAtPrice?: number | null;
+
+  @IsOptional()
   @IsString()
-  @Equals('SAR')
+  @Equals('EGP')
   currency?: string;
 
   @IsOptional()
