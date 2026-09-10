@@ -149,6 +149,7 @@ export class WishlistService {
       badgeAr: product.badgeAr,
       formatLabelAr: product.formatLabelAr,
       contentLabelAr: product.contentLabelAr,
+      editorialRating: Number(product.editorialRating),
       ratingAverage: Number(product.ratingAverage),
       reviewCount: product.reviewCount,
       publishedAt: product.publishedAt,

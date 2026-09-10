@@ -843,6 +843,11 @@ def main() -> int:
         )
 
         expect(
+            4.60 <= float(public_product.get("editorialRating", 0)) <= 5.00,
+            "Public product exposes ATHR editorial rating",
+        )
+
+        expect(
             bool(public_product.get("coverImage")),
             "Public product exposes Cloudinary cover",
         )

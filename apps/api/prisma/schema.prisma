@@ -158,6 +158,7 @@ model Product {
   badgeAr          String?
   formatLabelAr    String          @default("PDF رقمي")
   contentLabelAr   String          @default("منتج رقمي")
+  editorialRating Decimal         @default(4.80) @db.Decimal(3, 2)
   ratingAverage    Decimal         @default(0) @db.Decimal(3, 2)
   reviewCount      Int             @default(0)
   digitalFileKey   String?

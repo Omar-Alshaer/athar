@@ -50,6 +50,18 @@ function productPriceMarkup(p,compact=false){
     <div class="dual-price-line secondary-currency"><b>${money(p.price,'EGP')}</b>${discounted?`<del>${money(p.compareAtPrice,'EGP')}</del>`:''}</div>
   </div>`;
 }
+function productEditorialRatingMarkup(p,big=false){
+  const editorial=Number(p?.editorialRating);
+  if(Number.isFinite(editorial)&&editorial>=4.6&&editorial<=5){
+    return `<div class="rating${big?' big':''}"><span>★</span> ${editorial.toFixed(1)} <em>(تقييم أثر)</em></div>`;
+  }
+  const customer=Number(p?.rating);
+  const reviews=Number(p?.reviews);
+  if(Number.isFinite(customer)&&customer>0&&reviews>0){
+    return `<div class="rating${big?' big':''}"><span>★</span> ${customer.toFixed(1)} <em>(${reviews} تقييم)</em></div>`;
+  }
+  return '';
+}
 function productCoverClass(p){ return p?.cover||'cover-green'; }
 function catalogUnavailableMarkup(){ return '<div class="empty-state catalog-unavailable"><h3>تعذر تحميل المنتجات حاليًا</h3><p>تأكد من تشغيل خدمة أثر ثم أعد تحميل الصفحة.</p></div>'; }
 function productCoverVisual(p,cat){
@@ -227,7 +239,7 @@ function productCard(p){
     </a>
     <div class="product-meta">
       <a class="product-title" href="product.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a>
-      <div class="rating"><span>★</span> ${p.rating} <em>(${p.reviews})</em></div>
+      ${productEditorialRatingMarkup(p)}
       <div class="price-row">${productPriceMarkup(p,true)}</div>
       <button class="quick-add" type="button" data-cart-action="add" data-product-id="${escapeHtml(p.id)}">${icon('bag')} أضف للسلة</button>
     </div>
@@ -430,7 +442,7 @@ function initProduct(){
     ? previews.map(image=>`<span class="mini-preview-image"><img src="${escapeHtml(image.secureUrl)}" alt="${escapeHtml(image.altAr||p.title)}" loading="lazy"></span>`).join('')
     : '<span>معاينة 1</span><span>معاينة 2</span><span>معاينة 3</span>';
   root.innerHTML=`<div class="product-detail-grid"><div class="product-gallery"><div class="cover detail-cover ${productCoverClass(p)} ${hasImage?'has-cloudinary-image':''}">${productCoverVisual(p,cat)}<span class="product-badge">${escapeHtml(p.badge||'منتج أثر')}</span>${discountBadge(p)}<button class="wish-btn ${isWishlisted(p.id)?'active':''}" type="button" data-wishlist-id="${escapeHtml(p.id)}" aria-label="${isWishlisted(p.id)?'إزالة من المفضلة':'أضف للمفضلة'}" aria-pressed="${isWishlisted(p.id)}">${icon('heart2')}</button></div><div class="mini-previews">${previewMarkup}</div></div>
-  <div class="product-info"><a class="crumb" href="shop.html?category=${encodeURIComponent(cat.id)}">${escapeHtml(cat.name)}</a><h1>${escapeHtml(p.title)}</h1><div class="rating big"><span>★</span> ${p.rating} <em>(${p.reviews} تقييم)</em></div><p class="lead">${escapeHtml(p.subtitle)}</p><div class="price-big">${productPriceMarkup(p)}</div><div class="buy-actions"><button class="primary-btn" type="button" data-cart-action="add" data-product-id="${escapeHtml(p.id)}">${icon('bag')} أضف للسلة</button><button class="secondary-btn" type="button" data-cart-action="buy-now" data-product-id="${escapeHtml(p.id)}">اشترِ الآن</button></div>
+  <div class="product-info"><a class="crumb" href="shop.html?category=${encodeURIComponent(cat.id)}">${escapeHtml(cat.name)}</a><h1>${escapeHtml(p.title)}</h1>${productEditorialRatingMarkup(p,true)}<p class="lead">${escapeHtml(p.subtitle)}</p><div class="price-big">${productPriceMarkup(p)}</div><div class="buy-actions"><button class="primary-btn" type="button" data-cart-action="add" data-product-id="${escapeHtml(p.id)}">${icon('bag')} أضف للسلة</button><button class="secondary-btn" type="button" data-cart-action="buy-now" data-product-id="${escapeHtml(p.id)}">اشترِ الآن</button></div>
   <div class="mini-trust"><span>${icon('download')} تحميل فوري</span><span>${icon('shield')} دفع آمن</span><span>${icon('spark')} وصول مدى الحياة</span></div>
   <div class="product-spec"><div><span>النوع</span><b>${escapeHtml(p.format)}</b></div><div><span>المحتوى</span><b>${escapeHtml(p.pages)}</b></div><div><span>الوصول</span><b>فوري بعد الدفع</b></div></div></div></div>
   <section class="detail-copy"><h2>هذا المنتج سيساعدك على</h2><div class="benefit-list"><p>✓ تحويل الفكرة إلى خطوات بسيطة وقابلة للتطبيق.</p><p>✓ المتابعة بدون تعقيد أو شعور بالضغط.</p><p>✓ بناء وعي أعمق بالموضوع بطريقة عملية.</p><p>✓ الاحتفاظ بنسختك والرجوع لها في أي وقت.</p></div><h2>ماذا ستحصل عليه؟</h2><p>${escapeHtml(p.description||'نسخة رقمية مصممة بعناية، جاهزة للتحميل والاستخدام فور إتمام عملية الشراء. يمكن استخدامها على الهاتف أو الكمبيوتر.')}</p></section>`;

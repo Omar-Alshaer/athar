@@ -46,6 +46,7 @@
       sarPrice: Number(product.sarPrice || 0),
       sarCompareAtPrice: product.sarCompareAtPrice == null ? null : Number(product.sarCompareAtPrice),
       currency: product.currency || 'EGP',
+      editorialRating: product.editorialRating == null ? null : Number(product.editorialRating),
       rating: Number(product.ratingAverage || 0),
       reviews: Number(product.reviewCount || 0),
       badge: product.badgeAr || 'منتج أثر',
