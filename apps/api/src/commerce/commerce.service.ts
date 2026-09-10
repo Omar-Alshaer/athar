@@ -50,6 +50,7 @@ export class CommerceService {
         slug: true,
         titleAr: true,
         price: true,
+        sarPrice: true,
         currency: true,
       },
     });
@@ -59,14 +60,10 @@ export class CommerceService {
     }
 
     const productBySlug = new Map(products.map((product) => [product.slug, product]));
-    const currencies = new Set(products.map((product) => product.currency));
-    if (currencies.size !== 1) {
-      throw new BadRequestException('لا يمكن إنشاء طلب بعملات مختلفة.');
-    }
 
     const lines = items.map((item) => {
       const product = productBySlug.get(item.slug)!;
-      const unitCents = this.moneyToCents(product.price);
+      const unitCents = this.moneyToCents(product.sarPrice);
       return {
         product,
         quantity: item.quantity,
@@ -78,10 +75,7 @@ export class CommerceService {
     const totalCents = lines.reduce((sum, item) => sum + item.lineCents, 0);
     if (totalCents <= 0) throw new BadRequestException('قيمة الطلب غير صالحة.');
 
-    const currency = products[0].currency;
-    if (currency.trim().toUpperCase() !== 'EGP') {
-      throw new BadRequestException('الدفع متاح حاليًا للمنتجات المسعرة بالجنيه المصري فقط.');
-    }
+    const currency = 'SAR';
     const provider = this.paymentProvider();
 
     const orderNumber = this.generateOrderNumber();
@@ -116,13 +110,35 @@ export class CommerceService {
             status: OrderStatus.PENDING_PAYMENT,
           },
         },
-        select: { productTitleSnapshot: true },
+        select: {
+          productTitleSnapshot: true,
+          order: {
+            select: {
+              orderNumber: true,
+              payments: {
+                where: {
+                  provider,
+                  status: PaymentStatus.PENDING,
+                },
+                orderBy: { createdAt: 'desc' },
+                take: 1,
+                select: {
+                  providerCheckoutUrl: true,
+                },
+              },
+            },
+          },
+        },
       });
 
       if (pendingPurchase) {
-        throw new ConflictException(
-          `يوجد طلب قيد الدفع للمنتج «${pendingPurchase.productTitleSnapshot}». استكمله من حسابك قبل إنشاء طلب جديد.`,
-        );
+        throw new ConflictException({
+          code: 'PENDING_PAYMENT_EXISTS',
+          message: `يوجد طلب قيد الدفع للمنتج «${pendingPurchase.productTitleSnapshot}».`,
+          orderNumber: pendingPurchase.order.orderNumber,
+          checkoutUrl:
+            pendingPurchase.order.payments[0]?.providerCheckoutUrl ?? null,
+        });
       }
 
       if (

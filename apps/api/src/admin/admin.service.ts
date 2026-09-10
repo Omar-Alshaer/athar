@@ -87,7 +87,7 @@ export class AdminService {
       paidOrders,
       pendingOrders,
       successfulPayments,
-      revenue,
+      revenueByCurrency,
       recentUsers,
       recentOrders,
     ] = await Promise.all([
@@ -109,9 +109,11 @@ export class AdminService {
       this.prisma.order.count({ where: { status: OrderStatus.PAID } }),
       this.prisma.order.count({ where: { status: OrderStatus.PENDING_PAYMENT } }),
       this.prisma.payment.count({ where: { status: PaymentStatus.SUCCEEDED } }),
-      this.prisma.order.aggregate({
+      this.prisma.order.groupBy({
+        by: ['currency'],
         where: { status: OrderStatus.PAID },
         _sum: { total: true },
+        orderBy: { currency: 'asc' },
       }),
       this.prisma.user.findMany({
         orderBy: { createdAt: 'desc' },
@@ -157,10 +159,10 @@ export class AdminService {
         newsletterSubscribers,
         orders: { total: ordersTotal, paid: paidOrders, pending: pendingOrders },
         payments: { successful: successfulPayments },
-        revenue: {
-          amount: Number(revenue._sum.total ?? 0),
-          currency: 'EGP',
-        },
+        revenue: revenueByCurrency.map((row) => ({
+          amount: Number(row._sum.total ?? 0),
+          currency: row.currency,
+        })),
       },
       cloudinary: { configured: this.cloudinary.isConfigured() },
       recentUsers,

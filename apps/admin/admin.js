@@ -55,8 +55,8 @@ function money(value, currency = 'EGP') {
 function productPriceAdmin(p) {
   const discounted = Number(p.compareAtPrice) > Number(p.price)
     && Number(p.sarCompareAtPrice) > Number(p.sarPrice);
-  const percent = discounted ? Math.max(1,Math.round((1-Number(p.price)/Number(p.compareAtPrice))*100)) : 0;
-  return `<div class="admin-dual-price"><b>${money(p.price,'EGP')}</b>${discounted?`<del>${money(p.compareAtPrice,'EGP')}</del>`:''}<small>${money(p.sarPrice,'SAR')}${discounted?` · قبل الخصم ${money(p.sarCompareAtPrice,'SAR')}`:''}</small>${percent?`<span class="badge warn">خصم ${percent}%</span>`:''}</div>`;
+  const percent = discounted ? Math.max(1,Math.round((1-Number(p.sarPrice)/Number(p.sarCompareAtPrice))*100)) : 0;
+  return `<div class="admin-dual-price"><b>${money(p.sarPrice,'SAR')}</b>${discounted?`<del>${money(p.sarCompareAtPrice,'SAR')}</del>`:''}<small>${money(p.price,'EGP')}${discounted?` · قبل الخصم ${money(p.compareAtPrice,'EGP')}`:''}</small>${percent?`<span class="badge warn">خصم ${percent}%</span>`:''}</div>`;
 }
 
 function formatBytes(value) {
@@ -195,7 +195,9 @@ function renderOverview(data) {
       <article class="stat-card"><span>إجمالي المستخدمين</span><strong>${s.users.total}</strong><small>${s.users.customers} عميل</small></article>
       <article class="stat-card"><span>المنتجات</span><strong>${s.products.total}</strong><small>${s.products.published} منشور · ${s.products.draft} مسودة</small></article>
       <article class="stat-card"><span>مشتركو النشرة</span><strong>${s.newsletterSubscribers}</strong><small>اشتراكات فعالة</small></article>
-      <article class="stat-card"><span>إجمالي الإيراد</span><strong>${money(s.revenue.amount,s.revenue.currency)}</strong><small>${s.orders.paid} طلب مدفوع</small></article>
+      <article class="stat-card"><span>إجمالي الإيراد</span><strong>${(Array.isArray(s.revenue) && s.revenue.length
+      ? s.revenue.map(item => money(item.amount, item.currency)).join(' + ')
+      : money(0, 'SAR'))}</strong><small>${s.orders.paid} طلب مدفوع</small></article>
     </div>
     <div class="panel-grid">
       <section class="panel"><div class="panel-head"><h2>أحدث المستخدمين</h2><span class="badge">${data.recentUsers.length}</span></div>${data.recentUsers.length ? data.recentUsers.map(u=>`<div class="list-row"><div><strong>${esc(u.fullName)}</strong><small>${esc(u.email)}</small></div>${badge(u.status)}</div>`).join('') : '<div class="empty">لا توجد حسابات بعد.</div>'}</section>
@@ -314,14 +316,14 @@ async function openProductEditor(id = null) {
           <label>الحالة<select name="status"><option value="DRAFT" ${product?.status === 'DRAFT' || !product ? 'selected' : ''}>مسودة</option><option value="PUBLISHED" ${product?.status === 'PUBLISHED' ? 'selected' : ''}>منشور</option><option value="ARCHIVED" ${product?.status === 'ARCHIVED' ? 'selected' : ''}>مؤرشف</option></select></label>
         </div>
         <section class="pricing-editor">
-          <div class="pricing-editor-head"><h3>الأسعار والخصم</h3><p>الجنيه المصري هو مبلغ الدفع عبر XPay، والريال السعودي يظهر بجانبه للعميل.</p></div>
-          <div class="form-grid two">
-            <label>السعر النهائي بالجنيه المصري<input name="price" type="number" min="0.01" step="0.01" required value="${product?.price ?? '500.00'}"></label>
-            <label>السعر قبل الخصم بالجنيه المصري<input name="compareAtPrice" type="number" min="0.01" step="0.01" placeholder="اختياري" value="${product?.compareAtPrice ?? ''}"></label>
-          </div>
+          <div class="pricing-editor-head"><h3>الأسعار والخصم</h3><p>الريال السعودي هو السعر الأساسي ومبلغ الدفع عبر XPay، والجنيه المصري يظهر كسعر ثانوي للعميل.</p></div>
           <div class="form-grid two">
             <label>السعر النهائي بالريال السعودي<input name="sarPrice" type="number" min="0.01" step="0.01" required value="${product?.sarPrice ?? '39.99'}"></label>
             <label>السعر قبل الخصم بالريال السعودي<input name="sarCompareAtPrice" type="number" min="0.01" step="0.01" placeholder="اختياري" value="${product?.sarCompareAtPrice ?? ''}"></label>
+          </div>
+          <div class="form-grid two">
+            <label>السعر النهائي بالجنيه المصري<input name="price" type="number" min="0.01" step="0.01" required value="${product?.price ?? '500.00'}"></label>
+            <label>السعر قبل الخصم بالجنيه المصري<input name="compareAtPrice" type="number" min="0.01" step="0.01" placeholder="اختياري" value="${product?.compareAtPrice ?? ''}"></label>
           </div>
           <p class="form-hint">مثال: السعر النهائي 35 ر.س والسعر قبل الخصم 50 ر.س. أدخل القيمتين المقابلتين بالجنيه أيضًا ليظهر الخصم بالعملتين.</p>
         </section>

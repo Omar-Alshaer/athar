@@ -25,6 +25,9 @@
       const raw = Array.isArray(body.message) ? body.message[0] : body.message;
       const error = new Error(raw || 'تعذر إتمام العملية.');
       error.status = response.status;
+      error.code = typeof body.code === 'string' ? body.code : '';
+      error.checkoutUrl = typeof body.checkoutUrl === 'string' ? body.checkoutUrl : '';
+      error.orderNumber = typeof body.orderNumber === 'string' ? body.orderNumber : '';
       throw error;
     }
     return body;
@@ -70,8 +73,37 @@
     product: DATA.products.find(product => product.id === row.id),
   })).filter(item => item.product);
 
-  const subtotal = rows.reduce((sum, item) => sum + item.product.price, 0);
+  const subtotalEgp = rows.reduce((sum, item) => sum + Number(item.product.price || 0), 0);
   const subtotalSar = rows.reduce((sum, item) => sum + Number(item.product.sarPrice || 0), 0);
+
+  const safeXPayCheckoutUrl = value => {
+    try {
+      const url = new URL(String(value || ''), location.href);
+      return url.protocol === 'https:' && url.hostname === 'checkout.xpay.app'
+        ? url.href
+        : '';
+    } catch {
+      return '';
+    }
+  };
+
+  const setResumeCheckout = value => {
+    const checkoutUrl = safeXPayCheckoutUrl(value);
+    if (!checkoutUrl) return false;
+
+    const submit = form.querySelector('button[type="submit"]');
+    submit.dataset.resumeCheckoutUrl = checkoutUrl;
+    submit.disabled = false;
+    submit.textContent = 'استكمال الدفع';
+
+    if (authNote) {
+      authNote.classList.remove('warn');
+      authNote.textContent = 'لديك طلب قيد الدفع بالفعل. يمكنك استكمال نفس عملية الدفع دون إنشاء طلب جديد.';
+    }
+
+    errorNode.textContent = '';
+    return true;
+  };
 
   if (!rows.length) {
     itemsRoot.innerHTML = '<div class="checkout-empty"><p>سلتك فارغة حاليًا.</p><a class="primary-btn" href="shop.html">تصفح المنتجات</a></div>';
@@ -87,12 +119,59 @@
         <strong>${escapeHtml(product.title)}</strong>
         <span>${escapeHtml(product.format || 'منتج رقمي')} · نسخة واحدة</span>
       </div>
-      <b class="checkout-item-price">${money(product.price,'EGP')}<small>${money(product.sarPrice,'SAR')}</small></b>
+      <b class="checkout-item-price">${money(product.sarPrice,'SAR')}<small>${money(product.price,'EGP')}</small></b>
     </div>
   `).join('');
 
-  subtotalNode.innerHTML = `${money(subtotal,'EGP')}<small class="checkout-currency-secondary">${money(subtotalSar,'SAR')}</small>`;
-  totalNode.innerHTML = `${money(subtotal,'EGP')}<small class="checkout-currency-secondary">${money(subtotalSar,'SAR')}</small>`;
+  subtotalNode.innerHTML = `${money(subtotalSar,'SAR')}<small class="checkout-currency-secondary">${money(subtotalEgp,'EGP')}</small>`;
+  totalNode.innerHTML = `${money(subtotalSar,'SAR')}<small class="checkout-currency-secondary">${money(subtotalEgp,'EGP')}</small>`;
+
+  if (user) {
+    try {
+      const result = await request('/commerce/orders');
+      const cartProductIds = rows
+        .map(({ product }) => product.dbId)
+        .filter(Boolean)
+        .sort();
+
+      const pendingOrder = (result.items || []).find(order => {
+        if (order.status !== 'PENDING_PAYMENT') return false;
+
+        const orderProductIds = (order.items || [])
+          .map(item => item.productId)
+          .filter(Boolean)
+          .sort();
+
+        if (orderProductIds.length !== cartProductIds.length) return false;
+
+        const sameProducts = orderProductIds.every(
+          (id, index) => id === cartProductIds[index],
+        );
+
+        if (!sameProducts) return false;
+
+        return (order.payments || []).some(
+          payment =>
+            payment.status === 'PENDING' &&
+            safeXPayCheckoutUrl(payment.checkoutUrl),
+        );
+      });
+
+      const pendingPayment = pendingOrder?.payments?.find(
+        payment =>
+          payment.status === 'PENDING' &&
+          safeXPayCheckoutUrl(payment.checkoutUrl),
+      );
+
+      if (pendingPayment) {
+        setResumeCheckout(pendingPayment.checkoutUrl);
+      }
+    } catch (error) {
+      if (error.status !== 401) {
+        console.warn('ATHR could not inspect pending orders.', error);
+      }
+    }
+  }
 
   form.addEventListener('submit', async event => {
     event.preventDefault();
@@ -101,6 +180,15 @@
     const submit = form.querySelector('button[type="submit"]');
     if (submit.dataset.loginRequired === 'true' || !user) {
       location.href = `auth.html?next=${encodeURIComponent('checkout.html')}`;
+      return;
+    }
+
+    const resumeCheckoutUrl = safeXPayCheckoutUrl(
+      submit.dataset.resumeCheckoutUrl,
+    );
+
+    if (resumeCheckoutUrl) {
+      location.href = resumeCheckoutUrl;
       return;
     }
 
@@ -137,6 +225,14 @@
 
       throw new Error('لم يتم إنشاء رابط الدفع.');
     } catch (error) {
+      if (
+        error.status === 409 &&
+        error.code === 'PENDING_PAYMENT_EXISTS' &&
+        setResumeCheckout(error.checkoutUrl)
+      ) {
+        return;
+      }
+
       if (error.status === 401) {
         location.href = `auth.html?next=${encodeURIComponent('checkout.html')}`;
         return;

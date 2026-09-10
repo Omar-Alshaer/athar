@@ -4,7 +4,12 @@
   if (!root) return;
 
   const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[ch]));
-  const money = value => `${Number(value).toFixed(2)} ج.م`;
+  const money = (value, currency = 'SAR') =>
+    currency === 'SAR'
+      ? `${Number(value).toFixed(2)} ر.س`
+      : currency === 'EGP'
+        ? `${Number(value).toFixed(2)} ج.م`
+        : `${Number(value).toFixed(2)} ${currency}`;
 
   const request = async (path, options = {}) => {
     const response = await fetch(`${window.ATHR_DATA.apiBase}${path}`, {
@@ -40,9 +45,9 @@
       <p>هذه الشاشة تحاكي صفحة الدفع الخارجية. عند تفعيل XPay سيتم استبدالها بصفحة XPay الفعلية.</p>
       <div class="payment-order">
         <div class="payment-order-row"><span>رقم الطلب</span><strong>${esc(order.orderNumber)}</strong></div>
-        <div class="payment-order-row"><span>الإجمالي</span><strong>${money(order.total)}</strong></div>
+        <div class="payment-order-row"><span>الإجمالي</span><strong>${money(order.total, order.currency)}</strong></div>
         <div class="payment-items">
-          ${order.items.map(item => `<div class="payment-item"><span>${esc(item.title)} × ${item.quantity}</span><b>${money(item.lineTotal)}</b></div>`).join('')}
+          ${order.items.map(item => `<div class="payment-item"><span>${esc(item.title)} × ${item.quantity}</span><b>${money(item.lineTotal, order.currency)}</b></div>`).join('')}
         </div>
       </div>
       <div class="payment-actions">
@@ -83,7 +88,7 @@
         <p>تمت إضافة المنتجات إلى مكتبتك في حساب أثر.</p>
         <div class="payment-order">
           <div class="payment-order-row"><span>رقم الطلب</span><strong>${esc(order.orderNumber)}</strong></div>
-          <div class="payment-order-row"><span>الإجمالي</span><strong>${money(order.total)}</strong></div>
+          <div class="payment-order-row"><span>الإجمالي</span><strong>${money(order.total, order.currency)}</strong></div>
         </div>
         <div class="payment-actions">
           <a class="primary-btn full" href="account.html#library">فتح مكتبتي</a>

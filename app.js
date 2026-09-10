@@ -1,5 +1,5 @@
 const DATA = window.ATHR_DATA;
-const MERCHANT = Object.freeze({"businessName": "أثر للمنتجات الرقمية", "addressAr": "الحصورة، مركز أبو كبير، محافظة الشرقية، جمهورية مصر العربية", "phone": "+201062098087", "email": "contact@athar-online.com", "taxRegistration": "", "siteUrl": "https://athar-online.com"});
+const MERCHANT = Object.freeze({"businessName": "أثر للمنتجات الرقمية", "addressAr": "جدة، البوادي، مركز بن حمد، المملكة العربية السعودية", "phones": [{"label":"مصر","display":"0201029216219","href":"0201029216219"},{"label":"السعودية","display":"0510390125","href":"+966510390125"}], "email": "contact@athar-online.com", "taxRegistration": "", "siteUrl": "https://athar-online.com"});
 const $ = (s, root=document) => root.querySelector(s);
 const $$ = (s, root=document) => [...root.querySelectorAll(s)];
 
@@ -37,7 +37,7 @@ function hasProductDiscount(p){
 }
 function productDiscountPercent(p){
   if(!hasProductDiscount(p)) return 0;
-  return Math.max(1,Math.round((1-Number(p.price)/Number(p.compareAtPrice))*100));
+  return Math.max(1,Math.round((1-Number(p.sarPrice)/Number(p.sarCompareAtPrice))*100));
 }
 function discountBadge(p){
   const percent=productDiscountPercent(p);
@@ -46,8 +46,8 @@ function discountBadge(p){
 function productPriceMarkup(p,compact=false){
   const discounted=hasProductDiscount(p);
   return `<div class="dual-price ${compact?'compact':''}">
-    <div class="dual-price-line primary-currency"><b>${money(p.price,'EGP')}</b>${discounted?`<del>${money(p.compareAtPrice,'EGP')}</del>`:''}</div>
-    <div class="dual-price-line secondary-currency"><b>${money(p.sarPrice,'SAR')}</b>${discounted?`<del>${money(p.sarCompareAtPrice,'SAR')}</del>`:''}</div>
+    <div class="dual-price-line primary-currency"><b>${money(p.sarPrice,'SAR')}</b>${discounted?`<del>${money(p.sarCompareAtPrice,'SAR')}</del>`:''}</div>
+    <div class="dual-price-line secondary-currency"><b>${money(p.price,'EGP')}</b>${discounted?`<del>${money(p.compareAtPrice,'EGP')}</del>`:''}</div>
   </div>`;
 }
 function productCoverClass(p){ return p?.cover||'cover-green'; }
@@ -254,7 +254,10 @@ function nav(){
 }
 
 function footer(){
-  const phoneHref=MERCHANT.phone.replace(/[^\d+]/g,'');
+  const phoneLinks=(MERCHANT.phones||[]).map(phone=>{
+    const phoneHref=String(phone.href||phone.display||'').replace(/[^\d+]/g,'');
+    return `<a href="tel:${escapeHtml(phoneHref)}"><b>الهاتف — ${escapeHtml(phone.label)}:</b> ${escapeHtml(phone.display)}</a>`;
+  }).join('');
   const taxMarkup=MERCHANT.taxRegistration
     ? `<span><b>رقم التسجيل الضريبي:</b> ${escapeHtml(MERCHANT.taxRegistration)}</span>`
     : '';
@@ -266,7 +269,7 @@ function footer(){
 
     <address class="merchant-footer-contact">
       <span><b>العنوان:</b> ${escapeHtml(MERCHANT.addressAr)}</span>
-      <a href="tel:${escapeHtml(phoneHref)}"><b>الهاتف:</b> ${escapeHtml(MERCHANT.phone)}</a>
+      ${phoneLinks}
       <a href="mailto:${escapeHtml(MERCHANT.email)}"><b>البريد الإلكتروني:</b> ${escapeHtml(MERCHANT.email)}</a>
       <a href="${escapeHtml(MERCHANT.siteUrl)}"><b>الموقع الرسمي:</b> athar-online.com</a>
       ${taxMarkup}
@@ -300,7 +303,7 @@ function footer(){
 
   <div class="container copyright">
     <span>© 2026 أثر. جميع الحقوق محفوظة.</span>
-    <span>الأسعار معروضة بالجنيه المصري والريال السعودي، والدفع الإلكتروني يتم بالجنيه المصري.</span>
+    <span>الأسعار معروضة بالريال السعودي والجنيه المصري، والدفع عبر XPay يتم بالريال السعودي.</span>
   </div>
   </footer>`;
 }
@@ -405,7 +408,7 @@ function initShop(){
   const sortSelect=$('#sort-select'); sortSelect.value=sort;
   function draw(){
     let items=[...DATA.products]; if(active!=='all') items=items.filter(p=>p.category===active); const text=search.value.trim(); if(text) items=items.filter(p=>(p.title+' '+p.subtitle).includes(text));
-    const s=sortSelect.value; if(s==='price-low') items.sort((a,b)=>a.price-b.price); else if(s==='price-high') items.sort((a,b)=>b.price-a.price); else if(s==='popular') items.sort((a,b)=>b.reviews-a.reviews); else if(s==='new') items.sort((a,b)=>(b.badge==='جديد')-(a.badge==='جديد'));
+    const s=sortSelect.value; if(s==='price-low') items.sort((a,b)=>Number(a.sarPrice)-Number(b.sarPrice)); else if(s==='price-high') items.sort((a,b)=>Number(b.sarPrice)-Number(a.sarPrice)); else if(s==='popular') items.sort((a,b)=>b.reviews-a.reviews); else if(s==='new') items.sort((a,b)=>(b.badge==='جديد')-(a.badge==='جديد'));
     $$('#category-filter button').forEach(b=>b.classList.toggle('active',b.dataset.id===active));
     list.innerHTML=items.length?items.map(productCard).join(''):'<div class="empty-state"><h3>لا توجد نتائج مطابقة</h3><p>جرب كلمة بحث أو قسمًا مختلفًا.</p></div>';
     $('#result-count').textContent=`${items.length} منتج`;
@@ -453,10 +456,10 @@ function renderCart(){
   if(DATA.catalogError){ root.innerHTML=catalogUnavailableMarkup(); return; }
   const cart=getCart(); const rows=cart.map(row=>({row,p:DATA.products.find(p=>p.id===row.id)})).filter(x=>x.p);
   if(!rows.length){root.innerHTML='<div class="empty-cart"><div class="empty-bag">'+icon('bag')+'</div><h2>سلتك ما زالت فارغة</h2><p>اكتشف منتجات أثر واختر ما يناسب رحلتك.</p><a class="primary-btn" href="shop.html">تصفح المتجر</a></div>';return}
-  const subtotal=rows.reduce((s,x)=>s+x.p.price,0);
+  const subtotalEgp=rows.reduce((s,x)=>s+Number(x.p.price||0),0);
   const subtotalSar=rows.reduce((s,x)=>s+Number(x.p.sarPrice||0),0);
   root.innerHTML=`<div class="cart-layout"><div class="cart-items">${rows.map(({row,p})=>`<div class="cart-row"><a class="cover cart-cover ${productCoverClass(p)} ${p.coverUrl?'has-cloudinary-image':''}" href="product.html?id=${encodeURIComponent(p.id)}">${p.coverUrl?`<img class="product-cover-image" src="${escapeHtml(p.coverUrl)}" alt="${escapeHtml(p.coverAlt||p.title)}" loading="lazy">`:`<span class="cover-brand">أثر</span><strong>${escapeHtml(p.title)}</strong>`}</a><div class="cart-main"><a href="product.html?id=${encodeURIComponent(p.id)}">${escapeHtml(p.title)}</a><span>${escapeHtml(p.format)}</span></div><div class="qty"><span>نسخة رقمية واحدة</span></div><strong class="cart-dual-price">${productPriceMarkup(p,true)}</strong><button class="trash" type="button" data-cart-action="remove" data-product-id="${escapeHtml(p.id)}">${icon('trash')}</button></div>`).join('')}</div>
-  <aside class="order-summary"><h2>ملخص الطلب</h2><div><span>المجموع</span><b>${money(subtotal,'EGP')}<small>${money(subtotalSar,'SAR')}</small></b></div><div><span>التوصيل</span><b>رقمي — مجاني</b></div><hr><div class="total"><span>الإجمالي</span><b>${money(subtotal,'EGP')}<small>${money(subtotalSar,'SAR')}</small></b></div><button class="primary-btn full" id="checkout-open">إتمام الطلب</button><p>${icon('shield')} دفع آمن — لن يتم طلب عنوان شحن للمنتجات الرقمية.</p></aside></div>`;
+  <aside class="order-summary"><h2>ملخص الطلب</h2><div><span>المجموع</span><b>${money(subtotalSar,'SAR')}<small>${money(subtotalEgp,'EGP')}</small></b></div><div><span>التوصيل</span><b>رقمي — مجاني</b></div><hr><div class="total"><span>الإجمالي</span><b>${money(subtotalSar,'SAR')}<small>${money(subtotalEgp,'EGP')}</small></b></div><button class="primary-btn full" id="checkout-open">إتمام الطلب</button><p>${icon('shield')} دفع آمن — لن يتم طلب عنوان شحن للمنتجات الرقمية.</p></aside></div>`;
   $('#checkout-open')?.addEventListener('click',()=>{ window.location.href='checkout.html'; });
 }
 

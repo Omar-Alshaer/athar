@@ -832,7 +832,7 @@ def main() -> int:
         expect(
             public_product.get("currency") == "EGP"
             and abs(float(public_product.get("price", 0)) - 1.23) < 0.001,
-            "Public product exposes EGP checkout price",
+            "Public product exposes EGP secondary display price",
         )
 
         expect(
@@ -1012,9 +1012,9 @@ def main() -> int:
         )
 
         expect(
-            order.get("currency") == "EGP"
-            and abs(float(order.get("total", 0)) - 1.23) < 0.001,
-            "Checkout order uses authoritative EGP price",
+            order.get("currency") == "SAR"
+            and abs(float(order.get("total", 0)) - 0.10) < 0.001,
+            "Checkout order uses authoritative SAR price",
         )
 
         expect(
